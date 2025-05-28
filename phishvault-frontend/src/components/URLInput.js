@@ -26,3 +26,4 @@ function URLInput({ onScan }) {
 }
 
 export default URLInput;
+

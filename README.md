@@ -15,4 +15,4 @@ PhishVault is an AI-driven phishing detection tool that provides a secure, sandb
 - **Sandboxing**: Docker and Puppeteer for containerized website preview
 
 
-> 🚀 **PhishVault** is a *collaborative initiative* crafted with *passion and precision* by [Pardhu Varma](https://github.com/PardhuSreeRushiVarma20060119) and [Tejaswini Kandukoori](https://github.com/Tejaswini4119), aiming to redefine phishing detection through AI and containerized threat analysis.
+>> 🚀 **PhishVault** is a *collaborative initiative* crafted with *passion and precision* by [Pardhu Varma](https://github.com/PardhuSreeRushiVarma20060119) and [Tejaswini Kandukoori](https://github.com/Tejaswini4119), aiming to redefine phishing detection through AI and containerized threat analysis.

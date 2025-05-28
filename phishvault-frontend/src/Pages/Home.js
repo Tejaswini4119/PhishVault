@@ -32,9 +32,6 @@ AI-powered phishing detection and secure preview
 </p>
 </motion.div>
 
-php-template
-Copy
-Edit
   {/* Input Form */}
   <motion.form
     onSubmit={handleSubmit}

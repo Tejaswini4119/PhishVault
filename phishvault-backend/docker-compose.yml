@@ -1,0 +1,14 @@
+version: '3.8'
+
+services:
+  mongo-phishvault:
+    image: mongo:6.0
+    container_name: mongo-phishvault
+    restart: always
+    ports:
+      - "27018:27017"  # Expose on different host port to avoid conflict with MirageC2 (likely on 27017)
+    volumes:
+      - phishvault-db:/data/db
+
+volumes:
+  phishvault-db:

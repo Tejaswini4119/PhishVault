@@ -61,6 +61,20 @@ PhishVault is tailored to emphasize **backend efficiency**, **security-focused d
 
 ---
 
+## ⚠️ Disclaimer
+
+PhishVault is built **strictly for ethical research, threat detection training, and cybersecurity awareness**.
+It does **not** support or endorse the misuse of its capabilities in real-world malicious scenarios.
+
+---
+
+## 📫 Contact
+
+For collaboration, bug reports, or feature suggestions:  
+**PardhuVarma** – [LinkedIn](https://www.linkedin.com/in/pardhu-sri-rushi-varma-konduru-696886279/) | **Teju** – [LinkedIn](https://www.linkedin.com/in/kandukoori-tejaswini-765774289/)
+
+---
+
 ## 👥 Team Behind **PhishVault**
 
 > _"Security tools don’t need to be complex — they need to be clear, effective, and built with purpose."_  
@@ -112,21 +126,6 @@ PhishVault was built with the following principles:
 ---
 
 > _“PhishVault isn’t just a project. It’s a demonstration of what a small, well-coordinated team can build with purpose, trust, and a shared goal: to make phishing analysis accessible, accurate, and efficient.”_
-
-
----
-
-## ⚠️ Disclaimer
-
-PhishVault is built **strictly for ethical research, threat detection training, and cybersecurity awareness**.
-It does **not** support or endorse the misuse of its capabilities in real-world malicious scenarios.
-
----
-
-## 📫 Contact
-
-For collaboration, bug reports, or feature suggestions:  
-**PardhuVarma** – [LinkedIn](https://www.linkedin.com/in/pardhu-sri-rushi-varma-konduru-696886279/) | **Teju** – [LinkedIn](https://www.linkedin.com/in/kandukoori-tejaswini-765774289/)
 
 ---
 

@@ -54,10 +54,10 @@ PhishVault is tailored to emphasize **backend efficiency**, **security-focused d
 
 ## 📅 Roadmap
 
-- [x] Backend REST API completed
-- [x] MongoDB schema and report system integrated
-- []  Frontend under development
-- []  Docker containerization
+* [x] Backend REST API completed
+* [x] MongoDB schema and report system integrated
+* [ ]  Frontend under development
+* [ ]  Docker containerization
 
 ---
 

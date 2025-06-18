@@ -1,8 +1,8 @@
 # 🛡️ PhishVault
 
-**Status**: 🚧 Under Development  
-**Frontend & Lead**: Tejaswini
-**Backend & Database**: PardhuVarma  
+- **Status**: 🚧 Under Development  
+- **Frontend & Lead**: Tejaswini
+- **Backend & Database**: PardhuVarma  
 
 ---
 

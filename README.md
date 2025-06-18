@@ -61,6 +61,61 @@ PhishVault is tailored to emphasize **backend efficiency**, **security-focused d
 
 ---
 
+## 👥 Team Behind **PhishVault**
+
+> _"Security tools don’t need to be complex — they need to be clear, effective, and built with intent."_  
+> PhishVault is a focused collaborative effort that brings together structured backend engineering and thoughtful frontend development to deliver a lightweight and purposeful phishing detection system.
+
+---
+
+### **Tejaswini (Teju)** — Project Lead & Frontend Developer  
+> _“Every tool should feel intuitive — even when it’s built for complex problems.”_
+
+**Responsibilities:**
+- Conceptualized the PhishVault project and defined its initial scope, architecture, and vision.
+- Led the user experience design and frontend development, ensuring clarity in every interaction.
+- Assigned technical responsibilities, tracked timelines, and managed feature progression.
+- Bridged the design-to-implementation gap through precise planning and communication.
+
+**Notable Contributions:**
+- Created the overall project structure and interface flow.
+- Drove the frontend API integration plan and reusability strategy.
+- Demonstrated strong leadership through design alignment and team coordination.
+
+---
+
+### **Pardhu Varma** — Backend Engineer & Security Systems Developer  
+> _“Functionality, observability, and precision — the foundation of secure backend systems.”_
+
+**Responsibilities:**
+- Engineered the backend scan orchestration logic using Puppeteer for behavioral analysis.
+- Implemented threat scoring, logging mechanisms, and verdict classification systems.
+- Developed and documented the complete RESTful API layer for frontend integration.
+- Modeled and structured the MongoDB schema for efficient scan data handling.
+
+**Notable Contributions:**
+- Built the core infrastructure for URL scanning and reporting.
+- Ensured backend modularity for future extensibility and threat intelligence integration.
+- Integrated practical safeguards and scoring logic to support real-world phishing analysis.
+
+---
+
+### 🤝 Collaboration & Development Approach
+
+PhishVault was built with the following principles:
+
+- **Division of Responsibilities:** Clear separation between frontend (UI/UX, logic) and backend (infrastructure, processing).
+- **Simplicity over Complexity:** Every feature was built with clarity and future maintainability in mind.
+- **Rapid Prototyping:** Fast iteration cycles with structured API tests and modular rollouts.
+- **Security Focused:** Every decision, from Puppeteer isolation to verdict logic, was grounded in real-world threat behavior.
+
+---
+
+> _“PhishVault isn’t just a project. It’s a demonstration of what a small, well-coordinated team can build with intent, trust, and a shared goal: to make phishing analysis accessible, accurate, and efficient.”_
+
+
+---
+
 ## ⚠️ Disclaimer
 
 PhishVault is built **strictly for ethical research, threat detection training, and cybersecurity awareness**.

@@ -63,7 +63,7 @@ PhishVault is tailored to emphasize **backend efficiency**, **security-focused d
 
 ## 👥 Team Behind **PhishVault**
 
-> _"Security tools don’t need to be complex — they need to be clear, effective, and built with intent."_  
+> _"Security tools don’t need to be complex — they need to be clear, effective, and built with purpose."_  
 > PhishVault is a focused collaborative effort that brings together structured backend engineering and thoughtful frontend development to deliver a lightweight and purposeful phishing detection system.
 
 ---
@@ -78,7 +78,7 @@ PhishVault is tailored to emphasize **backend efficiency**, **security-focused d
 - Bridged the design-to-implementation gap through precise planning and communication.
 
 **Notable Contributions:**
-- Created the overall project structure and interface flow.
+- Created the overall project structure and interface flow from scratch.
 - Drove the frontend API integration plan and reusability strategy.
 - Demonstrated strong leadership through design alignment and team coordination.
 
@@ -104,14 +104,14 @@ PhishVault is tailored to emphasize **backend efficiency**, **security-focused d
 
 PhishVault was built with the following principles:
 
-- **Division of Responsibilities:** Clear separation between frontend (UI/UX, logic) and backend (infrastructure, processing).
+- **Division of Responsibilities:** Clear separation between frontend (UI/UX, logic) and backend (infrastructure, orchestration, processing).
 - **Simplicity over Complexity:** Every feature was built with clarity and future maintainability in mind.
 - **Rapid Prototyping:** Fast iteration cycles with structured API tests and modular rollouts.
 - **Security Focused:** Every decision, from Puppeteer isolation to verdict logic, was grounded in real-world threat behavior.
 
 ---
 
-> _“PhishVault isn’t just a project. It’s a demonstration of what a small, well-coordinated team can build with intent, trust, and a shared goal: to make phishing analysis accessible, accurate, and efficient.”_
+> _“PhishVault isn’t just a project. It’s a demonstration of what a small, well-coordinated team can build with purpose, trust, and a shared goal: to make phishing analysis accessible, accurate, and efficient.”_
 
 
 ---

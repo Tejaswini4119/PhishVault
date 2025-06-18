@@ -1,29 +1,45 @@
 // services/puppeteerService.js
-
 import puppeteer from 'puppeteer';
-import fs from 'fs';
 import path from 'path';
-import { v4 as uuid } from 'uuid';
+import fs from 'fs';
+import { v4 as uuidv4 } from 'uuid';
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 export default {
   async scanURL(url) {
     const browser = await puppeteer.launch({ headless: 'new' });
     const page = await browser.newPage();
 
-    const logs = [], redirects = [], cookies = [];
-    const scanId = uuid();
-    const screenshotPath = path.join('screenshots', `${scanId}.png`);
+    const logs = [];
+    const redirects = [];
+    const collectedCookies = [];
+
+    const screenshotName = `${uuidv4()}.png`;
+    const screenshotDir = path.join(__dirname, '..', 'screenshots');
+    const screenshotPath = path.join(screenshotDir, screenshotName);
+
+    // 🔧 Ensure screenshots directory exists
+    if (!fs.existsSync(screenshotDir)) {
+      fs.mkdirSync(screenshotDir, { recursive: true });
+    }
 
     page.on('console', msg => logs.push(msg.text()));
     page.on('framenavigated', frame => {
-      if (!redirects.includes(frame.url())) redirects.push(frame.url());
+      const url = frame.url();
+      if (!redirects.includes(url)) redirects.push(url);
     });
 
     try {
       await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 10000 });
       await page.screenshot({ path: screenshotPath });
-      const cookieData = await page.cookies();
-      cookies.push(...cookieData);
+
+      const context = page.browserContext();
+      const cookiesFromContext = await context.cookies();
+      collectedCookies.push(...cookiesFromContext);
     } catch (err) {
       logs.push(`[ERROR] ${err.message}`);
     }
@@ -31,13 +47,11 @@ export default {
     await browser.close();
 
     return {
-      logs,
-      redirects,
-      cookies,
-      screenshotPath
-    };
+  logs,
+  redirects,
+  cookies: collectedCookies,
+  screenshot: `/screenshots/${screenshotName}`
+};
+
   }
 };
-// This service uses Puppeteer to navigate to the provided URL, capture logs, redirects, cookies, and take a screenshot.
-// The screenshot is saved in a 'screenshots' directory with a unique filename based on the scan ID.
-// The service returns an object containing the logs, redirects, cookies, and the path to

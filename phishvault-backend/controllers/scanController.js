@@ -19,7 +19,7 @@ export const runScan = async (req, reply) => {
 
     const scanRecord = await Scan.create({
       url: safeUrl,
-      screenshot: scanData.screenshotPath,
+      screenshot: scanData.screenshot,
       redirects: scanData.redirects,
       logs: scanData.logs,
       cookies: scanData.cookies,

@@ -1,4 +1,4 @@
-// server.js - PhishVault Backend
+// server.js - PhishVault Backend (Fixed Version)
 
 import fastifyStatic from '@fastify/static';
 import path from 'path';
@@ -13,7 +13,7 @@ dotenv.config();
 
 import Fastify from 'fastify';
 import cors from '@fastify/cors';
-import { MongoClient } from 'mongodb';
+import mongoose from 'mongoose';  // ✅ Use Mongoose instead of MongoClient
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -22,10 +22,7 @@ const fastify = Fastify({ logger: true });
 
 // Environment
 const PORT = process.env.PORT || 4000;
-const MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27019';
-const DB_NAME = 'phishvault';
-
-let db;
+const MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/phishvault'; // ✅ Use 27017 unless you're sure of 27019
 
 // Register CORS
 await fastify.register(cors, {
@@ -33,15 +30,16 @@ await fastify.register(cors, {
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
 });
 
-// MongoDB Connection
+// MongoDB Connection using Mongoose
 async function connectDB() {
   try {
-    const client = await MongoClient.connect(MONGO_URI);
-    db = client.db(DB_NAME);
-    fastify.decorate('db', db);  // Make db accessible in routes
-    console.log('✅ Connected to MongoDB');
+    await mongoose.connect(MONGO_URI, {
+      useNewUrlParser: true,
+      useUnifiedTopology: true
+    });
+    console.log('✅ Connected to MongoDB (via Mongoose)');
   } catch (err) {
-    console.error('❌ MongoDB connection failed:', err);
+    console.error('❌ Mongoose connection failed:', err);
     process.exit(1);
   }
 }
@@ -57,18 +55,18 @@ await fastify.register(fastifyStatic, {
   prefix: '/screenshots/',
 });
 
-// Route hooks to confirm registration
+// Log registered routes
 fastify.addHook('onRoute', (route) => {
   console.log(`[ROUTE] ${route.method} ${route.url}`);
 });
 
 // Register Routes
-fastify.register(scanRoutes, { prefix: '/api' });        // ✅ Enables POST /api/scan
-fastify.register(reportRoutes, { prefix: '/api/report' }); // ✅ Enables GET /api/report/:id
+fastify.register(scanRoutes, { prefix: '/api' });
+fastify.register(reportRoutes, { prefix: '/api/report' });
 
 // Global Error Handler
 fastify.setErrorHandler((error, request, reply) => {
-  console.error('Error:', error);
+  console.error('Global Error:', error);
   reply.status(500).send({ error: 'Internal Server Error' });
 });
 

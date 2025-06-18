@@ -3,12 +3,11 @@ import Scan from '../models/Scan.js';
 import { runScan } from '../controllers/scanController.js';
 
 export default async function scanRoutes(app) {
-  app.post('/api/scan', runScan);
+  // POST /scan
+  app.post('/scan', runScan);
 
-  // Uncomment and define getScanResult if needed
-  // app.get('/api/scan/:id', getScanResult);
-
-  app.get('/api/scan/:scanId', async (req, reply) => {
+  // GET /scan/:scanId
+  app.get('/scan/:scanId', async (req, reply) => {
     const { scanId } = req.params;
 
     if (!scanId) {
@@ -28,7 +27,13 @@ export default async function scanRoutes(app) {
     }
   });
 
-  app.get('/api/scans', async (req, reply) => {
+  // GET /api (optional root for scan-related routes)
+  app.get('/', async () => {
+    return { message: 'PhishVault API Root. Use /scans to submit scans.' };
+  });
+
+  // GET /scans
+  app.get('/scans', async (req, reply) => {
     try {
       const scans = await Scan.find().sort({ timestamp: -1 });
       return reply.code(200).send(scans);
@@ -38,7 +43,8 @@ export default async function scanRoutes(app) {
     }
   });
 
-  app.get('/api/scans/:verdict', async (req, reply) => {
+  // GET /scans/:verdict
+  app.get('/scans/:verdict', async (req, reply) => {
     const { verdict } = req.params;
 
     if (!verdict) {
@@ -55,10 +61,5 @@ export default async function scanRoutes(app) {
       console.error('Get Scans by Verdict Error:', err.message);
       return reply.code(500).send({ error: 'Failed to retrieve scans' });
     }
-  });
-
-  app.setErrorHandler((error, request, reply) => {
-    console.error('Error:', error);
-    reply.status(500).send({ error: 'Internal Server Error' });
   });
 }

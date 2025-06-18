@@ -24,13 +24,13 @@ PhishVault is tailored to emphasize **backend efficiency**, **security-focused d
 
 ## 💡 Key Features
 
-- 🔐 URL threat intelligence storage
-- 📊 Verdict classification (Safe / Suspicious / Malicious)
-- 🕓 Date-range based report queries
-- 🧠 Summary dashboard (report counts by type)
-- 🗂️ CRUD operations for reports
-- 🚀 RESTful API with Fastify
-- 🛢️ MongoDB-powered backend
+- URL threat intelligence storage
+- Verdict classification (Safe / Suspicious / Malicious)
+- Date-range based report queries
+- Summary dashboard (report counts by type)
+- CRUD operations for reports
+- RESTful API with Fastify
+- MongoDB-powered backend
 
 ---
 
@@ -54,10 +54,10 @@ PhishVault is tailored to emphasize **backend efficiency**, **security-focused d
 
 ## 📅 Roadmap
 
-- [✅] Backend REST API completed
-- [✅] MongoDB schema and report system integrated
-- [ ]  Frontend under development
-- [ ]  Docker containerization
+- [x] Backend REST API completed
+- [x] MongoDB schema and report system integrated
+- []  Frontend under development
+- []  Docker containerization
 
 ---
 

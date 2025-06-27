@@ -19,6 +19,9 @@ COMPOSE_FILE="$BACKEND_DIR/docker-compose.yml"
 PROJECT_NAME="phishvault-backend"
 BUILD_FLAG=$1
 
+
+# Step 1: Validate environment
+echo "🔍 [0/4] Starting environment..."
 echo "🔧 [1/4] Validating backend environment..."
 
 # Check if .env file exists

@@ -113,9 +113,11 @@ For bug reports, contributions, or collaboration requests:
 - ⚡ Rapid prototyping + CI/CD for faster iteration  
 - 📦 Scalable architecture with future extensibility in mind
 
+## ℹ️ Information
+> Refer [ChangeLog](CHANGELOG.md) for more info.
+
 ---
 
 > **“PhishVault isn’t just a project. It’s proof that even a small, focused team can build something powerful, intuitive, and security-driven.”**
-> Refer [ChangeLog](CHANGELOG.md) for more info.
 
 © 2025 **PhishVault** – Built with intent. Released with purpose.

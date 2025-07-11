@@ -44,7 +44,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-## Pre-1.0 Versions
+## Pre-v1.0 Versions
 
 - 🔧 Internal prototypes, backend logic testing, and UI scaffolding  
 - ❌ These versions are no longer supported or maintained

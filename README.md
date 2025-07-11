@@ -6,7 +6,7 @@
 - **Language/Frameworks Used**: Node.js, React.js, MongoDB, Docker
 - **Tools Utilized**: VSCode, GitLab CI/CD Pipeline
 - **Collaboration Platform**: Gitlab, Github
-- **Communication Channels**: Slack, Zoom Meetings
+- **Communication Channels**: Google Meet, Zoom Meetings, Slack
 - **Version Control**: GitLab Repository, Github
 - **Deployment Methodology**: Docker Containers
 - **Database Schema**: MongoDB

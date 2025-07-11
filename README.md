@@ -10,7 +10,7 @@
 
 > ⚙️ **Status**: `v1.0 Released`  
 > 📆 **Project Duration**: 2 Months  
-> 👥 **Team Size**: 2 Developers  (Yes, For Real!)
+> 👥 **Team Size**: 2 Developers  (Yes, For Real!) 
 > 📁 **Deployment**: Dockerized with CI/CD  
 > 🛠 **Stack**: Node.js, React.js, MongoDB, Docker, Puppeteer
 

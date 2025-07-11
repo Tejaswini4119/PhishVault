@@ -24,11 +24,17 @@ const fastify = Fastify({ logger: true });
 const PORT = process.env.PORT || 4000;
 const MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/phishvault'; // ✅ Use 27017 unless you're sure of 27019
 
-// Register CORS
+// CORS Configuration
+// ✅ Allow only your frontend to access the backend
+// ✅ Use 'http://localhost:3000' for development
+// ✅ Use 'https://your-frontend-domain.com' for production
+// ✅ Ensure you have the correct origin set in your frontend's fetch requests    
 await fastify.register(cors, {
-  origin: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE'],
+  origin: 'http://localhost:3000', // Allow only your frontend
+  methods: ['GET', 'POST', 'PUT', 'DELETE'], // Optional: restrict methods
+  credentials: true               // If you're sending cookies or auth headers
 });
+
 
 // MongoDB Connection using Mongoose
 async function connectDB() {

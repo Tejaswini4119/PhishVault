@@ -1,76 +1,65 @@
+// src/pages/ReportPage.js
 import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
-import axios from "axios";
-import VerdictBadge from "../components/VerdictBadge";
-import Loader from "../components/Loader";
-import Header from "../components/Header";
 
-export default function ReportPage() {
-const { id } = useParams();
-const [report, setReport] = useState(null);
-const [loading, setLoading] = useState(true);
-const [error, setError] = useState(false);
+const ReportPage = () => {
+  const { id } = useParams();
+  const [report, setReport] = useState(null);
+  const [error, setError] = useState("");
 
-useEffect(() => {
-axios
-.get(http://localhost:4002/api/report/${id})
-.then((res) => {
-setReport(res.data);
-setLoading(false);
-})
-.catch((err) => {
-setError(true);
-setLoading(false);
-});
-}, [id]);
+  useEffect(() => {
+    const fetchReport = async () => {
+      try {
+        const res = await fetch(`http://localhost:4002/api/scan/${id}`);
+        if (!res.ok) throw new Error("Report not found");
+        const data = await res.json();
+        setReport(data);
+      } catch (err) {
+        setError("Failed to load report.");
+      }
+    };
+    fetchReport();
+  }, [id]);
 
-if (loading) return <Loader />;
-if (error) return <div className="p-8 text-red-500">Failed to load report.</div>;
+  if (error) return <p className="text-red-500 font-semibold text-center">{error}</p>;
+  if (!report) return <p className="text-gray-300 text-center">Loading report...</p>;
 
-return (
-<>
-<Header/>
-<div className="min-h-screen bg-gray-50 p-6">
-<h2 className="text-2xl font-semibold mb-4">Scan Report</h2>
-<div className="bg-white p-4 rounded shadow">
-<p><strong>URL:</strong> {report.url}</p>
-<p className="mt-2 flex items-center gap-2">
-<strong>Verdict:</strong>
-<VerdictBadge verdict={report.verdict} />
+  return (
+    <div className="min-h-screen bg-gray-950 text-white p-8">
+      <div className="max-w-2xl mx-auto bg-gray-900 border border-cyan-500 p-6 rounded-lg shadow-lg">
+        <h2 className="text-2xl font-bold mb-4 text-cyan-400">🧾 Full Report</h2>
+        <p><strong className="text-gray-300">URL:</strong> {report.url}</p>
+        <p><strong className="text-gray-300">Report ID:</strong> {report._id}</p>
+        <p>
+  <strong className="text-gray-300">Verdict:</strong>{" "}
+  <span className={`font-semibold ${
+    ["phishing", "malicious", "dangerous"].includes(report.verdict?.toLowerCase())
+      ? "text-red-400"
+      : report.verdict?.toLowerCase() === "suspicious"
+      ? "text-yellow-400"
+      : "text-green-400"
+  }`}>
+    {report.verdict}
+  </span>
 </p>
-<img
-src={http://localhost:4002/${report.screenshot}}
-alt="Screenshot"
-className="w-full mt-4 border"
-/>
-<div className="mt-4">
-<h3 className="font-semibold">Redirects:</h3>
-<ul className="list-disc list-inside text-sm text-gray-600">
-{report.redirects.map((url, index) => (
-<li key={index}>{url}</li>
-))}
-</ul>
-</div>
-<div className="mt-4">
-<h3 className="font-semibold">Console Logs:</h3>
-<ul className="list-disc list-inside text-sm text-gray-600">
-{report.consoleLogs.map((log, index) => (
-<li key={index}>{log}</li>
-))}
-</ul>
-</div>
-<div className="mt-4">
-<h3 className="font-semibold">Cookies:</h3>
-<ul className="list-disc list-inside text-sm text-gray-600">
-{report.cookies.map((cookie, index) => (
-<li key={index}>
-{cookie.name} = {cookie.value}
-</li>
-))}
-</ul>
-</div>
-</div>
-</div>
-</>
-);
-}
+
+        <p><strong className="text-gray-300">Threat Score:</strong> {report.score ?? 'N/A'}</p>
+        <p><strong className="text-gray-300">Details:</strong> {report.details || 'No additional details available.'}</p>
+        <p><strong className="text-gray-300">Timestamp:</strong> {report.timestamp}</p>
+
+        {report.screenshot && (
+  <div className="mt-6">
+    <h3 className="text-lg font-semibold text-cyan-300 mb-2">Captured Screenshot:</h3>
+    <img
+      src={`http://localhost:4002${report.screenshot}`}
+      alt="Captured Screenshot"
+      className="w-full border border-gray-700 rounded-lg"
+    />
+  </div>
+)}
+      </div>
+    </div>
+  );
+};
+
+export default ReportPage;

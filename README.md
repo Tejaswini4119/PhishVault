@@ -1,7 +1,6 @@
 # 🛡️ PhishVault
 
 - **Status**: 🚧 Base Application Completed ✅
-- **Team Size**: 2 Developers
 - **Project Duration**: 2 months
 - **Language/Frameworks Used**: Node.js, React.js, MongoDB, Docker
 - **Tools Utilized**: VSCode, GitLab CI/CD Pipeline
@@ -11,14 +10,16 @@
 - **Deployment Methodology**: Docker Containers
 - **Database Schema**: MongoDB
 - **Scanning Tool**: Puppeteer
-- **URL Scanning**: Puppeteer Isolation
-- **Verdict Classification**: Custom Logic
-- **Report Generation**: MongoDB Aggregation Pipelines
-- **Threat Intelligence Storage**: MongoDB Collections
 - **Scan Orchestration**: Puppeteer Isolation
 - **Verdict Classification**: Custom Logic
 - **RESTful API Layer**: Fastify Server
-- **Docker Containerization**: Multi-stage Build Process  
+- **Report Generation**: MongoDB Aggregation Pipelines
+- **Threat Intelligence Storage**: MongoDB Collections
+- **Docker Containerization**: Multi-stage Build Process
+
+---  
+
+- **Team Size**: 2 Developers
 - **Frontend & Lead**: Tejaswini
 - **Backend & Database**: PardhuVarma  
 

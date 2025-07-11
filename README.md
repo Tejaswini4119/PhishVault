@@ -1,4 +1,4 @@
-# 🛡️ PhishVault v1.0 – Official Release
+# 🛡️ PhishVault
 
 > **"Security tools don’t need to be complex — they need to be clear, effective, and built with purpose."**
 

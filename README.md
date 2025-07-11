@@ -105,9 +105,9 @@ It does **not** support or endorse the misuse of its capabilities in real-world 
 ## 📫 Contact
 
 For collaboration, bug reports, or feature suggestions:  
-- **PardhuVarma** – [LinkedIn](https://www.linkedin.com/in/pardhu-sri-rushi-varma-konduru-696886279/) || [GitHub](https://github.com/PardhuSreeRushiVarma20060119) || [Email](mailto:varmacstp25@gmail.com)
+- **PardhuVarma** – [LinkedIn](https://www.linkedin.com/in/pardhu-sri-rushi-varma-konduru-696886279/) | [GitHub](https://github.com/PardhuSreeRushiVarma20060119) | [Email](mailto:varmacstp25@gmail.com)
 
-- **Teju** – [LinkedIn](https://www.linkedin.com/in/kandukoori-tejaswini-765774289/) || [GitHub](https://github.com/Tejaswini4119)
+- **Teju** – [LinkedIn](https://www.linkedin.com/in/kandukoori-tejaswini-765774289/) | [GitHub](https://github.com/Tejaswini4119)
 ---
 
 ## 👥 Team Behind **PhishVault**

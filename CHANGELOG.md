@@ -70,7 +70,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - All features tested successfully via Postman.
 
 ### 🗓️ 18/06/2025 – Frontend Setup & Submission Page (by Tejaswini)
-- Bootstrapped the frontend with Vite + Tailwind CSS.
+- Bootstrapped the frontend with React + Tailwind CSS.
 - Built the submission form with Axios POST request integration.
 - Implemented React Router navigation to redirect post-submit.
 - Added loading states, toast messages, and error handling.

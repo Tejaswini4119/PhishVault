@@ -1,6 +1,24 @@
 # 🛡️ PhishVault
 
-- **Status**: 🚧 Under Development  
+- **Status**: 🚧 Base Application Completed ✅
+- **Team Size**: 2 Developers
+- **Project Duration**: 2 months
+- **Language/Frameworks Used**: Node.js, React.js, MongoDB, Docker
+- **Tools Utilized**: VSCode, GitLab CI/CD Pipeline
+- **Collaboration Platform**: Gitlab, Github
+- **Communication Channels**: Slack, Zoom Meetings
+- **Version Control**: GitLab Repository, Github
+- **Deployment Methodology**: Docker Containers
+- **Database Schema**: MongoDB
+- **Scanning Tool**: Puppeteer
+- **URL Scanning**: Puppeteer Isolation
+- **Verdict Classification**: Custom Logic
+- **Report Generation**: MongoDB Aggregation Pipelines
+- **Threat Intelligence Storage**: MongoDB Collections
+- **Scan Orchestration**: Puppeteer Isolation
+- **Verdict Classification**: Custom Logic
+- **RESTful API Layer**: Fastify Server
+- **Docker Containerization**: Multi-stage Build Process  
 - **Frontend & Lead**: Tejaswini
 - **Backend & Database**: PardhuVarma  
 
@@ -47,17 +65,33 @@ PhishVault is tailored to emphasize **backend efficiency**, **security-focused d
 
 ## 🧑‍💻 Team Roles
 
-- 🎨 **Tejaswini (Teju)**: Frontend Dev, Project Designer & Project Lead. 
+- 🎨 **Tejaswini (Lead)**: Frontend Dev, Project Designer & Project Lead. 
 - 🛠️ **PardhuVarma**: Backend Dev, API, Database Design & Security Overseas
 
 ---
 
 ## 📅 Roadmap
 
-* [x] Backend REST API completed
-* [x] MongoDB schema and report system integrated
-* [ ]  Frontend under development
-* [ ]  Docker containerization
+* [x]  Backend REST API completed
+* [x]  MongoDB schema and report system integrated
+* [x]  Backend scan orchestration and verdict logic implemented.
+* [x]  Frontend UI completed
+* [x]  Backend and frontend integration
+* [x]  Scan orchestration and verdict logic implemented
+* [x]  Report generation pipelines added
+* [x]  Dashboard analytics (Scan History) module developed
+* [x]  CRUD operations for managing reports
+* [x]  Docker containerization
+* [x]  Continuous Integration/Continuous Deployment (CI/CD) setup
+* [x]  Finalize and document all components
+* [x]  Conduct thorough testing and security audits
+* [x]  Documentation and final release preparation
+* [x]  Final code review and cleanup
+* [x]  Release v1.0
+* [ ]  Additional features and improvements based on feedback
+* [ ]  Ongoing maintenance and updates  
+* [ ]  Ongoing Support and Maintenance
+
 
 ---
 
@@ -71,7 +105,9 @@ It does **not** support or endorse the misuse of its capabilities in real-world 
 ## 📫 Contact
 
 For collaboration, bug reports, or feature suggestions:  
-**PardhuVarma** – [LinkedIn](https://www.linkedin.com/in/pardhu-sri-rushi-varma-konduru-696886279/) | **Teju** – [LinkedIn](https://www.linkedin.com/in/kandukoori-tejaswini-765774289/)
+- **PardhuVarma** – [LinkedIn](https://www.linkedin.com/in/pardhu-sri-rushi-varma-konduru-696886279/) || [GitHub](https://github.com/PardhuSreeRushiVarma20060119) || [Email](mailto:varmacstp25@gmail.com)
+
+- **Teju** – [LinkedIn](https://www.linkedin.com/in/kandukoori-tejaswini-765774289/)
 
 ---
 

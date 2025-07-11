@@ -3,6 +3,7 @@ import { useParams } from "react-router-dom";
 import axios from "axios";
 import VerdictBadge from "../components/VerdictBadge";
 import Loader from "../components/Loader";
+import Header from "../components/Header";
 
 export default function ReportPage() {
 const { id } = useParams();
@@ -27,6 +28,8 @@ if (loading) return <Loader />;
 if (error) return <div className="p-8 text-red-500">Failed to load report.</div>;
 
 return (
+<>
+<Header/>
 <div className="min-h-screen bg-gray-50 p-6">
 <h2 className="text-2xl font-semibold mb-4">Scan Report</h2>
 <div className="bg-white p-4 rounded shadow">
@@ -68,5 +71,6 @@ className="w-full mt-4 border"
 </div>
 </div>
 </div>
+</>
 );
 }

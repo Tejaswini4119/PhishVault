@@ -12,12 +12,12 @@ const handleSubmit = async (e) => {
 e.preventDefault();
 setLoading(true);
 try {
-  const res = await axios.post('http://localhost:4002/scan', { url });
-  toast.success("Scan initiated successfully!");
+  const res = await axiosInstance.post('http://localhost:4002/scan', { url });
   navigate(`/report/${res.data.scanId}`);
 } catch (err) {
-  if (err.response?.status === 400) toast.error("Invalid URL submitted");
-  else toast.error("Something went wrong. Try again.");
+  if (!err.response) toast.error("Backend is unreachable.");
+  else if (err.response.status === 400) toast.error("Invalid URL.");
+  else toast.error("Unexpected error occurred.");
 } finally {
   setLoading(false);
 }

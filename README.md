@@ -109,7 +109,7 @@ cd phishvault-frontend/
 - Planned API integration and user experience  
 - Orchestrated team collaboration and progress tracking
 
-### 🛠️ PardhuVarma — *Backend Engineer & Security Systems Developer*
+### 🛠️ PardhuVarma — *Backend Engineer & Docker Orchestrations Developer*
 
 > “Functionality, observability, and precision — the foundation of secure backend systems.”
 

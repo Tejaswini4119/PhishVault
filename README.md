@@ -52,6 +52,52 @@
 
 ---
 
+## ⚙️ Local Development and Run
+
+### ⚙️ Requirements
+
+- Node.js `v18+`
+- MongoDB (local or Docker)
+- Git
+- Linux/macOS terminal or WSL (for `.sh` script support)
+
+To run locally
+### 1. 🏗️ Clone PhishVault :
+
+```bash
+git clone https://github.com/your-username/phishvault.git
+cd phishvault
+```
+
+### 🧱 2. Start MongoDB
+If MongoDB isn’t running locally, you can spin it up using Docker:
+```
+docker run -d --name phishvault-mongo -p 27017:27017 mongo
+```
+
+### 📦 3. Setup Environment Variables
+Backend: backend/.env
+```
+PORT=4000
+MONGO_URI=mongodb://localhost:27017/phishvault
+```
+
+### 🖥️ 4. Backend (Fastify + Puppeteer)
+```bash
+./devbackend.sh
+```
+
+### 🌐 Frontend (React.js)
+```bash
+./devfrontend.sh
+```
+
+> Note: Docker image support coming soon! stay tuned.
+
+> any dev issues, reach us out at [email](varmacstp25@gmail.com) or [linkedin](#) or here in github. 
+
+---
+
 ## 🧑‍💻 Meet the Team
 
 ### 🎨 Tejaswini (Teju) — *Project Lead & Frontend Developer*

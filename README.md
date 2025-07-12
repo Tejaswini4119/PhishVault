@@ -52,7 +52,8 @@
 
 ---
 
-## ⚙️ Local Development and Run
+## ⚙️ Local Development and Run.
+> Note: Docker image support coming soon! stay tuned.
 
 ### ⚙️ Requirements
 
@@ -91,10 +92,7 @@ MONGO_URI=mongodb://localhost:27017/phishvault
 ```bash
 ./devfrontend.sh
 ```
-
-> Note: Docker image support coming soon! stay tuned.
-
-> any dev issues, reach us out at [email](varmacstp25@gmail.com) or [linkedin](#) or here in github. 
+> any dev issues, reach us out at [email](mailto:varmacstp25@gmail.com) or [linkedin](https://www.linkedin.com/in/pardhu-sri-rushi-varma-konduru-696886279/) or here in [gitHub](https://github.com/PardhuSreeRushiVarma20060119)
 
 ---
 
@@ -147,8 +145,8 @@ PhishVault is intended **strictly for ethical research, threat detection trainin
 
 For bug reports, contributions, or collaboration requests:
 
-- **PardhuVarma** – [LinkedIn](#) | [GitHub](#) | [Email](#)  
-- **Tejaswini (Teju)** – [LinkedIn](#) | [GitHub](#)
+- **PardhuVarma** – [LinkedIn](https://www.linkedin.com/in/pardhu-sri-rushi-varma-konduru-696886279/) | [GitHub](https://github.com/PardhuSreeRushiVarma20060119) | [Email](mailto:varmacstp25@gmail.com)  
+- **Tejaswini (Teju)** – [LinkedIn](https://www.linkedin.com/in/kandukoori-tejaswini-765774289/) | [GitHub](https://github.com/Tejaswini4119/)
 
 ---
 

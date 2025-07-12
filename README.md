@@ -85,11 +85,13 @@ MONGO_URI=mongodb://localhost:27017/phishvault
 
 ### 🖥️ 4. Backend (Fastify + Puppeteer)
 ```bash
+cd phishvault-backend/
 ./devbackend.sh
 ```
 
 ### 🌐 Frontend (React.js)
 ```bash
+cd phishvault-frontend/
 ./devfrontend.sh
 ```
 > any dev issues, reach us out at [email](mailto:varmacstp25@gmail.com) or [linkedin](https://www.linkedin.com/in/pardhu-sri-rushi-varma-konduru-696886279/) or here in [gitHub](https://github.com/PardhuSreeRushiVarma20060119)

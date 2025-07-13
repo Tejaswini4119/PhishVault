@@ -15,7 +15,7 @@ const ReportPage = () => {
         const data = await res.json();
         setReport(data);
       } catch (err) {
-        setError("Failed to load report.");
+        setError("Failed to load report (or) Report does not exist.");
       }
     };
     fetchReport();

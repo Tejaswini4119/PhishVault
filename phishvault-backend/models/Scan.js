@@ -11,10 +11,12 @@ const ScanSchema = new mongoose.Schema({
   verdict: { type: String, enum: ['Safe', 'Suspicious', 'Malicious'], required: true },
   score: { type: Number },
   notes: [String],
+  details: { type: String }, // ✅ New field for detailed explanation
   timestamp: { type: Date, default: Date.now }
 });
 
 export default mongoose.model('Scan', ScanSchema);
+
 // This code defines a Mongoose schema for the Scan model.
 // It includes fields for the URL, screenshot path, redirects, logs, cookies, verdict,
 // score, notes, and timestamp.

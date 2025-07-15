@@ -82,8 +82,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Consistent report rendering and state management
 - **Deployment & DevOps**
   - Dockerized containers (multi-stage build for frontend/backend)
-  - GitLab CI/CD Pipeline for continuous deployment
-  - Environment-specific configuration support
 
 #### 🛡️ Security & Stability
 - Puppeteer scan isolation and sandboxing

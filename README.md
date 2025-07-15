@@ -120,7 +120,7 @@ cd phishvault-frontend/
 
 ---
 
-## 🧭 Roadmap: v1.0 Milestones
+## 🧭 Roadmap: v1.0 & v1.0.1 Milestones
 
 - ✅ Backend REST API completed  
 - ✅ MongoDB schema integrated  
@@ -133,6 +133,7 @@ cd phishvault-frontend/
 - ✅ CI/CD setup (GitLab)  
 - ✅ Final QA, testing, and cleanup  
 - ✅ **v1.0 Released**
+- ✅ **v1.0.1 Enhancements Released**
 
 ---
 

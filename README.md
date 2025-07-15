@@ -168,3 +168,6 @@ For bug reports, contributions, or collaboration requests:
 > **“PhishVault isn’t just a project. It’s proof that even a small, focused team can build something powerful, intuitive, and security-driven.”**
 
 © 2025 **PhishVault** – Built with intent. Released with purpose.
+
+> 📆 Repository Created: May 28, 2025
+

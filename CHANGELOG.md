@@ -44,10 +44,64 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## Enhancements By Team PhishVault – 13 July 2025 - [1.0.1]
+
+
+#### 🧠 Threat Scoring System (threatScorer.js)
+  - 🔍 Added deep inspection logic for:
+      - Credential input fields (username, email, user)
+      - Hidden auth tokens (e.g., CSRF, auth_token)
+      - Brand impersonation detection (Netflix, Google, etc.)
+      - Suspicious external JavaScript sources (e.g., .xyz, pastebin, IP URLs)
+      - Anti-analysis behaviors (e.g., debugger, infinite loops)
+      - Delayed execution detection (setTimeout with large delays)
+
+  - 🔍 Fingerprinting / anti-bot detection indicators:
+      - navigator.userAgent, screen.width, timezoneOffset, etc.
+      - 📈 Score logic upgraded to reflect multi-factor threat analysis
+      - 📝 details field added (aggregated string of notes) for frontend rendering
+
+#### 📦 Scan Controller (scanController.js)
+  - ✅ Expanded debug logs for easier backend observability:
+      - Final URL
+      - Redirect count
+      - HTML snippet
+      - JS logs
+      - Password field match
+      - Cookie count
+
+- 🛠 Automatically includes details field during scan creation
+- 🔁 Error handling improved with cleaner feedback for scan failures
+
+- 🗃️ MongoDB Schema (Scan.js) ➕ New Field:
+    - `details: { type: String }`
+
+- Stores semicolon-separated summary of notes for each scan
+- Enhances readability on frontend dashboards and reports
+
+#### 🌑 Phishing Site Template
+  - 🎨 UI Enhancements:
+      - Realistic dark blue theme
+      - Modern CSS animation and glassmorphism design
+
+  - 🕵️‍♂️ Form Behaviors:
+      - Includes <input type="password">, username, email fields
+      - Hidden auth_token and csrf fields
+      - JavaScript includes obfuscation and delay behavior
+      - ✅ Successfully triggers PhishVault detection engine
+
+#### 🖥️ Frontend Improvements (React.js)
+  - 🧾 Scan Reports Now Display:
+      - verdict, score, timestamp, and new details field
+      - ➕ details dynamically rendered from backend response
+      - 🔄 Verified end-to-end with working backend and MongoDB integration
+
+---
+
 ## Pre-v1.0 Versions
 
 - 🔧 Internal prototypes, backend logic testing, and UI scaffolding  
-- ❌ These versions are no longer supported or maintained
+- ❌ These versions are no longer supported or maintained, or might completely updated.
 
 
 ## 🧪 Pre-v1.0 Version Development History

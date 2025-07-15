@@ -8,7 +8,7 @@
 
 **PhishVault** is a secure and intelligent platform to analyze, manage, and investigate potentially malicious URLs. Designed with cybersecurity professionals in mind, it simplifies phishing detection, logging, and reporting in a fast and scalable way.
 
-> ⚙️ **Status**: `v1.0 Released`  
+> ⚙️ **Status**: `v1.0 & Enhancements-v1.0.1 Released`  
 > 📆 **Project Duration**: 2 Months  
 > 👥 **Team Size**: 2 Developers
 > 📁 **Deployment**: Dockerized with CI/CD  

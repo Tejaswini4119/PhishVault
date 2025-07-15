@@ -1,4 +1,3 @@
-
 # 🛡️ Contributing to PhishVault
 
 _"Security tools don’t need to be complex — they need to be clear, effective, and built with purpose."_
@@ -151,7 +150,7 @@ PhishVault is intended **strictly for educational, ethical, and research purpose
 Violators will be blocked and reported.
 
 If you find a security vulnerability:
-📫 Email us at **security@phishvault.io** or contact the maintainers privately.
+📫 Email us at **varmacstp25@gmail.com** or contact the maintainers privately.
 
 ---
 

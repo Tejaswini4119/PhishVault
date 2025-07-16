@@ -4,7 +4,7 @@
 
 ---
 ## 💻 Demonstration of Phishvault
-[Demonstration-Video](Demonstration-PV/Demonstration-PV.mp4)
+[Demonstration-Video](Demonstrations-PV/Demonstration-PV.mp4)
 
 
 ---

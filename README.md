@@ -50,7 +50,7 @@
 
 | Component | Technology        |
 |----------|-------------------|
-| Frontend | React.js *(In Progress)* |
+| Frontend | React.js          |
 | Backend  | Fastify (Node.js) |
 | Database | MongoDB           |
 | Scanning | Puppeteer         |

@@ -51,31 +51,52 @@ with versioning and lineage tracking.
 
 ## 4. HIGH-LEVEL ARCHITECTURE
 
-The PV2 architecture is a streamlined pipeline designed for high-fidelity signal extraction and campaign mapping.
+The PV2 architecture is a high-fidelity intelligence pipeline that normalizes chaos into structured, campaign-scale insights.
 
 ```mermaid
 graph TD
-    A[Ingestion: URL/EML/Files] --> B[Artifact Normalization]
-    B --> C1[Stealth Browser Engine]
-    B --> C2[AI Vision/NLP Engine]
-    B --> C3[Infra Network Engine]
-    C1 & C2 & C3 --> D[Signal Abstraction Layer]
-    D --> E[Temporal & Origin Reconstruction]
-    E --> F[Governed Verdict Engine]
-    F --> G[PhishDB Intelligence Vault]
-    G --> H[Analyst Workbench & Reporting]
-    
-    %% Recursive Loops
-    E -.->|Auto Re-scan| A
-    H -.->|Audit Feedback| D
+    subgraph "1. Ingestion & Deconstruction"
+        A["Artifact Gateway (URL/EML/Files)"] --> B["SHA-256 Hashing & Normalization"]
+    end
+
+    subgraph "2. Sovereign Signal Analysis"
+        B --> C1["Stealth Browser (Playwright)"]
+        B --> C2["AI Insight (Vision/NLP)"]
+        B --> C3["Infra Intelligence (pDNS/WHOIS)"]
+    end
+
+    subgraph "3. Signal Abstraction (SAL)"
+        C1 & C2 & C3 --> D["SAL Canonical Hub (JSON Schema)"]
+    end
+
+    subgraph "4. Intelligence Synthesis"
+        D --> E["Temporal & Origin Reconstruction"]
+        E --> F["Verdict Engine (Rego Policies)"]
+    end
+
+    subgraph "5. PhishDB Hybrid Persistence"
+        F --> G1["Metadata & Audit (PostgreSQL)"]
+        F --> G2["Relationship Graph (Neo4j)"]
+        B & C1 --> G3["Evidence Store (S3/MinIO)"]
+    end
+
+    subgraph "6. Operational Governance"
+        G1 & G2 & G3 --> H["Analyst Workbench (UI/NLG)"]
+        H --> I["Reporting (STIX/JSON-LD)"]
+    end
+
+    %% Closed-Loop Feedback
+    E -.->|Temporal Re-scan| A
+    H -.->|Governed Refinement| D
 ```
 
 ### Component Interaction & Workflow
-1.  **Ingestion & Normalization**: Converges multi-format artifacts into a canonical schema.
-2.  **Sovereign Engines**: Isolated modules extracting visual, behavioral, and infrastructure signals.
-3.  **Signal Abstraction Layer (SAL)**: The unified JSON contract for all intelligence findings.
-4.  **Temporal & Origin Reconstruction**: Maps artifact evolution and infrastructure "Path Fingerprints" over time.
-5.  **Governance & PhishDB Vault**: Centralized storage for evidence, campaign graphs, and audited analyst overrides.
+1.  **Ingestion & Deconstruction**: Converts raw, messy inputs into stable internal artifacts with lineage tracking.
+2.  **Sovereign Parallel Analysis**: Runs isolated, specialized engines that don't share state, ensuring modularity.
+3.  **Signal Abstraction Layer (SAL)**: The backbone of PV2. Standardizes confidence and evidence into a single contract.
+4.  **Intelligence Synthesis**: Correlates SAL signals across time to map campaign evolution and infrastructure origins.
+5.  **PhishDB Hybrid Persistence**: Multi-tier storage optimized for queries (PostgreSQL), relationships (Neo4j), and evidence (S3).
+6.  **Operational Governance**: Provides analysts with AI-assisted explanations (NLG) and exports intelligence in industry-standard formats.
 
 ---
 

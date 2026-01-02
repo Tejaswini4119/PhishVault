@@ -80,7 +80,7 @@ graph TD
 
     subgraph "2. Sovereign Signal Analysis"
         B --> C1["Stealth Browser (Playwright)"]
-        B --> C2["AI Insight (Vision/NLP)"]
+        B --> C2["AI Insight (NLP)"]
         B --> C3["Infra Intelligence (pDNS/WHOIS)"]
     end
 

@@ -91,12 +91,39 @@ graph TD
 ```
 
 ### Component Interaction & Workflow
-1.  **Ingestion & Deconstruction**: Converts raw, messy inputs into stable internal artifacts with lineage tracking.
-2.  **Sovereign Parallel Analysis**: Runs isolated, specialized engines that don't share state, ensuring modularity.
-3.  **Signal Abstraction Layer (SAL)**: The backbone of PV2. Standardizes confidence and evidence into a single contract.
-4.  **Intelligence Synthesis**: Correlates SAL signals across time to map campaign evolution and infrastructure origins.
-5.  **PhishDB Hybrid Persistence**: Multi-tier storage optimized for queries (PostgreSQL), relationships (Neo4j), and evidence (S3).
-6.  **Operational Governance**: Provides analysts with AI-assisted explanations (NLG) and exports intelligence in industry-standard formats.
+
+The PhishVault-2 workflow is designed as a **Unidirectional Data Flow** with specialized state management at each stage.
+
+1.  **Ingestion & Deconstruction (The Gateway)**
+    - **Process**: Receives raw artifacts via REST API or Bulk Feed. Each input is assigned a unique `artifact_id` and hashed using SHA-256 for content deduplication.
+    - **Decomposition**: Emails are decomposed into sub-artifacts (headers, body sections, attachments), creating a parent-child relationship tree in the metadata layer.
+    - **Distribution**: Artifacts are dispatched to the message broker (RabbitMQ/Redis) for parallel engine processing.
+
+2.  **Sovereign Parallel Analysis (The Signal Engines)**
+    - **Behavior**: Analysis engines (Stealth Browser, Vision AI, NLP, Network Intel) operate as independent, stateless microservices.
+    - **Isolation**: Engines perform "Deep Dives" into the artifact without prior knowledge of other engine findings, preventing signal bias.
+    - **Output**: Every engine produces raw technical data, which is then mapped to the Signal Abstraction Layer.
+
+3.  **Signal Abstraction Layer (The Central Hub)**
+    - **Role**: Normalizes diverse engine outputs into a canonical JSON schema.
+    - **Attributes**: Every signal includes `signal_type`, `normalized_confidence`, and a verifiable `evidence_blob`. 
+    - **Governance**: SAL acts as the single source of truth for all downstream intelligence modules.
+
+4.  **Intelligence Synthesis & Reconstruction (The Intelligence Layer)**
+    - **Correlation**: The Correlation Engine aggregates SAL signals to identify patterns across multiple artifacts.
+    - **Origin Mapping**: Probabilistically reconstructs infrastructure "Path Fingerprints" by pivoting through Graph DB nodes (ASNs, TLS Fingerprints, JA3 hashes).
+    - **Verdict Engine**: Applies deterministic **Rego (Open Policy Agent)** rules to SAL signals to generate a final risk verdict.
+
+5.  **PhishDB Hybrid Persistence (The Storage Tier)**
+    - **Performance Tiers**:
+        - **PostgreSQL**: Handles relational metadata, signal logs, and immutable audit trails.
+        - **Neo4j**: Powers the campaign graph, allowing real-time traversal of attribution pivots.
+        - **S3/MinIO**: Immutably stores "Ground Truth" evidence (raw artifacts, screenshots, DOM dumps).
+
+6.  **Operational Governance (The Human Layer)**
+    - **Analyst Workbench**: Loads unified views from PhishDB, providing **Explanation Trees** for every verdict.
+    - **AI-Assisted (NLG)**: Uses Natural Language Generation to translate complex technical signals into SOC-ready summaries.
+    - **Intelligence Export**: Packages campaign data into industry-standard formats (STIX 2.1, JSON-LD) for external TIP ingestion.
 
 ---
 

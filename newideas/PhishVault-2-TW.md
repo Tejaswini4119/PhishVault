@@ -67,42 +67,53 @@ The PV2 architecture is a high-fidelity intelligence pipeline that normalizes ch
     'nodeBkg': '#1a1a1a',
     'nodeBorder': '#444444',
     'clusterBkg': '#1a1a1a',
-    'clusterBorder': '#333333',
+    'clusterBorder': '#555555',
     'defaultLinkColor': '#888888',
     'titleColor': '#ffffff',
     'edgeLabelBackground':'#121212'
   }
 }}%%
 graph TD
-    subgraph "1. Ingestion & Deconstruction"
+    classDef blueSub fill:#1e3a8a,stroke:#3b82f6,stroke-width:2px,color:#ffffff;
+    classDef greenSub fill:#064e3b,stroke:#10b981,stroke-width:2px,color:#ffffff;
+    classDef brownSub fill:#451a03,stroke:#d97706,stroke-width:2px,color:#ffffff;
+    classDef redSub fill:#7f1d1d,stroke:#ef4444,stroke-width:2px,color:#ffffff;
+
+    subgraph SG1 ["1. Ingestion & Deconstruction"]
         A["Artifact Gateway (URL/EML/Files)"] --> B["SHA-256 Hashing & Normalization"]
     end
+    class SG1 blueSub
 
-    subgraph "2. Sovereign Signal Analysis"
+    subgraph SG2 ["2. Sovereign Signal Analysis"]
         B --> C1["Stealth Browser (Playwright)"]
         B --> C2["AI Insight (NLP)"]
         B --> C3["Infra Intelligence (pDNS/WHOIS)"]
     end
+    class SG2 greenSub
 
-    subgraph "3. Signal Abstraction (SAL)"
+    subgraph SG3 ["3. Signal Abstraction (SAL)"]
         C1 & C2 & C3 --> D["SAL Canonical Hub (JSON Schema)"]
     end
+    class SG3 brownSub
 
-    subgraph "4. Intelligence Synthesis"
+    subgraph SG4 ["4. Intelligence Synthesis"]
         D --> E["Temporal & Origin Reconstruction"]
         E --> F["Verdict Engine (Rego Policies)"]
     end
+    class SG4 redSub
 
-    subgraph "5. PhishDB Hybrid Persistence"
+    subgraph SG5 ["5. PhishDB Hybrid Persistence"]
         F --> G1["Metadata & Audit (PostgreSQL)"]
         F --> G2["Relationship Graph (Neo4j)"]
         B & C1 --> G3["Evidence Store (S3/MinIO)"]
     end
+    class SG5 blueSub
 
-    subgraph "6. Operational Governance"
+    subgraph SG6 ["6. Operational Governance"]
         G1 & G2 & G3 --> H["Analyst Workbench (UI/NLG)"]
         H --> I["Reporting (STIX/JSON-LD)"]
     end
+    class SG6 greenSub
 
     %% Closed-Loop Feedback
     E -.->|Temporal Re-scan| A

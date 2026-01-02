@@ -51,49 +51,31 @@ with versioning and lineage tracking.
 
 ## 4. HIGH-LEVEL ARCHITECTURE
 
-The PV2 architecture is a multi-tier framework designed for deep signal extraction, temporal tracking, and origin attribution.
+The PV2 architecture is a streamlined pipeline designed for high-fidelity signal extraction and campaign mapping.
 
 ```mermaid
 graph TD
-    %% Ingestion Layer
-    A["Ingestion (URL/EML/Files/IOCs)"] -->|MD5/SHA256 Hashing| B["Decomposition & Normalization"]
+    A[Ingestion: URL/EML/Files] --> B[Artifact Normalization]
+    B --> C1[Stealth Browser Engine]
+    B --> C2[AI Vision/NLP Engine]
+    B --> C3[Infra Network Engine]
+    C1 & C2 & C3 --> D[Signal Abstraction Layer]
+    D --> E[Temporal & Origin Reconstruction]
+    E --> F[Governed Verdict Engine]
+    F --> G[PhishDB Intelligence Vault]
+    G --> H[Analyst Workbench & Reporting]
     
-    %% Analysis Engines (Sovereign)
-    B --> C1["Playwright Stealth Browser"]
-    B --> C2["Siamese/BERT ML Insight Engine"]
-    B --> C3["Network/Infra Intelligence Engine"]
-    B --> C4["Safe Attachment Inspector"]
-    
-    %% Signal Extraction (SAL)
-    C1 & C2 & C3 & C4 -->|Normalizing to SAL Schema| D["Signal Abstraction Layer (SAL)"]
-    
-    %% Intelligence Layers
-    D --> E["Intelligence Correlation Engine"]
-    E -->|Heuristics + Rego Rules| F["Verdict Engine (Policy-Based)"]
-    E -->|Graph DB pivots| G["Campaign & Origin Reconstruction"]
-    
-    %% Storage (PhishDB Hybrid Vault)
-    F & G -->|Write Structured Data| H1[("Metadata DB (PostgreSQL)")]
-    F & G -->|Write Relationships| H2[("Graph DB (Neo4j)")]
-    B & C1 -->|Write Raw Evidence| H3[("Blob Vault (S3/MinIO)")]
-    
-    %% Workflow & Governance
-    H1 & H2 & H3 -->|Contextual Loading| I["Analyst Workbench UI"]
-    I -->|Override/Justify| J["Governance & Audit Logging"]
-    I -->|STIX/JSON-LD| K["Reporting & TIP Integration"]
-    
-    %% Feedback / Temporal Loop
-    G -->|Update Timeline| L["Temporal Behavior Tracking"]
-    L -->|Schedule Re-scan| A
-    J -->|Weight Refinement| D
+    %% Recursive Loops
+    E -.->|Auto Re-scan| A
+    H -.->|Audit Feedback| D
 ```
 
 ### Component Interaction & Workflow
-1.  **Ingestion & Normalization**: Normalizes inputs into a canonical format and triggers parallel analysis.
-2.  **Sovereign Analysis Engines**: Independent modules that extract specialized signals (Visual AI, NLP, JS behavior, Infra).
-3.  **Signal Abstraction Layer (SAL)**: Standardizes all findings into a unified confidence-weighted JSON format.
-4.  **Temporal & Origin Reconstruction**: Correlates SAL signals with historical data to map the attack evolution and infrastructure origin.
-5.  **Governance & PhishDB**: Stores evidence, relationships, and human overrides in an audit-ready vault.
+1.  **Ingestion & Normalization**: Converges multi-format artifacts into a canonical schema.
+2.  **Sovereign Engines**: Isolated modules extracting visual, behavioral, and infrastructure signals.
+3.  **Signal Abstraction Layer (SAL)**: The unified JSON contract for all intelligence findings.
+4.  **Temporal & Origin Reconstruction**: Maps artifact evolution and infrastructure "Path Fingerprints" over time.
+5.  **Governance & PhishDB Vault**: Centralized storage for evidence, campaign graphs, and audited analyst overrides.
 
 ---
 

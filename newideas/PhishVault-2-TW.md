@@ -51,26 +51,49 @@ with versioning and lineage tracking.
 
 ## 4. HIGH-LEVEL ARCHITECTURE
 
-The PV2 architecture is a modular data pipeline centered around an **Event-Driven Signal Hub**.
+The PV2 architecture is a multi-tier framework designed for deep signal extraction, temporal tracking, and origin attribution.
 
 ```mermaid
 graph TD
-    A[Ingestion: URL/Email/File] -->|Normalize| B[Artifact Pipeline]
-    B --> C1[Browser Engine]
-    B --> C2[ML Insight Engine]
-    B --> C3[Network Intel Engine]
-    C1 & C2 & C3 -->|Standardized Signals| D[Signal Abstraction Layer]
-    D --> E[Verdict Engine]
-    E --> F[Intelligence Vault & Graph]
-    F --> G[Analyst Workbench]
-    D -.->|Feedback| H[AI Refinement]
+    %% Ingestion Layer
+    A["Ingestion (URL/EML/Files/IOCs)"] -->|MD5/SHA256 Hashing| B["Decomposition & Normalization"]
+    
+    %% Analysis Engines (Sovereign)
+    B --> C1["Playwright Stealth Browser"]
+    B --> C2["Siamese/BERT ML Insight Engine"]
+    B --> C3["Network/Infra Intelligence Engine"]
+    B --> C4["Safe Attachment Inspector"]
+    
+    %% Signal Extraction (SAL)
+    C1 & C2 & C3 & C4 -->|Normalizing to SAL Schema| D["Signal Abstraction Layer (SAL)"]
+    
+    %% Intelligence Layers
+    D --> E["Intelligence Correlation Engine"]
+    E -->|Heuristics + Rego Rules| F["Verdict Engine (Policy-Based)"]
+    E -->|Graph DB pivots| G["Campaign & Origin Reconstruction"]
+    
+    %% Storage (PhishDB Hybrid Vault)
+    F & G -->|Write Structured Data| H1[("Metadata DB (PostgreSQL)")]
+    F & G -->|Write Relationships| H2[("Graph DB (Neo4j)")]
+    B & C1 -->|Write Raw Evidence| H3[("Blob Vault (S3/MinIO)")]
+    
+    %% Workflow & Governance
+    H1 & H2 & H3 -->|Contextual Loading| I["Analyst Workbench UI"]
+    I -->|Override/Justify| J["Governance & Audit Logging"]
+    I -->|STIX/JSON-LD| K["Reporting & TIP Integration"]
+    
+    %% Feedback / Temporal Loop
+    G -->|Update Timeline| L["Temporal Behavior Tracking"]
+    L -->|Schedule Re-scan| A
+    J -->|Weight Refinement| D
 ```
 
-### Component Interaction
-1.  **Ingestion**: Receives multi-format artifacts, generates content hashes (SHA-256), and assigns a unique `artifact_id`.
-2.  **Engines**: Plug-and-play modules that output JSON signals.
-3.  **Verdict Engine**: A rule-based engine that aggregates SAL signals using a weighted trust model.
-4.  **PhishDB (Neo4j/PostgreSQL)**: Stores relationship data (URL -> Domain -> IP -> Campaign) and historical telemetry.
+### Component Interaction & Workflow
+1.  **Ingestion & Normalization**: Normalizes inputs into a canonical format and triggers parallel analysis.
+2.  **Sovereign Analysis Engines**: Independent modules that extract specialized signals (Visual AI, NLP, JS behavior, Infra).
+3.  **Signal Abstraction Layer (SAL)**: Standardizes all findings into a unified confidence-weighted JSON format.
+4.  **Temporal & Origin Reconstruction**: Correlates SAL signals with historical data to map the attack evolution and infrastructure origin.
+5.  **Governance & PhishDB**: Stores evidence, relationships, and human overrides in an audit-ready vault.
 
 ---
 

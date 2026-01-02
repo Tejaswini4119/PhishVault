@@ -54,6 +54,25 @@ with versioning and lineage tracking.
 The PV2 architecture is a high-fidelity intelligence pipeline that normalizes chaos into structured, campaign-scale insights.
 
 ```mermaid
+%%{init: {
+  'theme': 'base',
+  'themeVariables': {
+    'primaryColor': '#1a1a1a',
+    'primaryTextColor': '#e0e0e0',
+    'primaryBorderColor': '#333333',
+    'lineColor': '#888888',
+    'secondaryColor': '#1a1a1a',
+    'tertiaryColor': '#1a1a1a',
+    'mainBkg': '#121212',
+    'nodeBkg': '#1a1a1a',
+    'nodeBorder': '#444444',
+    'clusterBkg': '#1a1a1a',
+    'clusterBorder': '#333333',
+    'defaultLinkColor': '#888888',
+    'titleColor': '#ffffff',
+    'edgeLabelBackground':'#121212'
+  }
+}}%%
 graph TD
     subgraph "1. Ingestion & Deconstruction"
         A["Artifact Gateway (URL/EML/Files)"] --> B["SHA-256 Hashing & Normalization"]

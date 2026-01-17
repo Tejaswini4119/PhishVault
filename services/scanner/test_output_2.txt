@@ -1,0 +1,12 @@
+=== RUN   TestCanonicalize
+    verification_test.go:21: Canonicalized: http://example.com/page
+--- PASS: TestCanonicalize (0.09s)
+=== RUN   TestFetch
+    verification_test.go:30: Status: 200
+    verification_test.go:31: Headers: map[Age:[2045] Allow:[GET, HEAD] Cf-Cache-Status:[HIT] Cf-Ray:[9bf7b3bc6de3814b-HYD] Connection:[keep-alive] Content-Type:[text/html] Date:[Sat, 17 Jan 2026 17:51:41 GMT] Last-Modified:[Tue, 13 Jan 2026 19:12:22 GMT] Server:[cloudflare] Vary:[Accept-Encoding]]
+--- PASS: TestFetch (0.01s)
+=== RUN   TestBrowser
+    verification_test.go:39: Skipping browser test: could not start playwright: please install the driver (v1.52.0) first
+--- SKIP: TestBrowser (0.00s)
+PASS
+ok  	github.com/PhishVault/PhishVault-2/services/scanner	4.999s

@@ -8,7 +8,7 @@ import (
 	"net/http"
 	"time"
 
-	"phishvault/core/domain" // Assumes module name 'phishvault'
+	"github.com/PhishVault/PhishVault-2/core/domain"
 )
 
 var producer *Producer

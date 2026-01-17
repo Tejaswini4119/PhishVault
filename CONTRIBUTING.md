@@ -1,8 +1,6 @@
 # Contributing Guidelines
 
-> **⚠️ RESTRICTED REPOSITORY: INTERNAL DEVELOPMENT ONLY**
-
-This repository contains proprietary intelligence gathering and analysis logic for **PhishVault-2**.
+> **⚠️ INTERNAL DEVELOPMENT ONLY ⚠️**
 
 ### ⛔ No External Contributions
 

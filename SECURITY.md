@@ -1,54 +1,32 @@
-# 🔐 Security Policy
+# Security Policy
 
-## 📦 Supported Versions
+> **⛔ DANGER: LIVE MALWARE HANDLING**
+> This system is designed to ingest, process, and analyze active malicious payloads, including phishing kits and exploit code.
 
-The following table outlines the currently supported versions of **PhishVault** for receiving security updates:
+## 1. Reporting a Vulnerability
 
-| Version | Supported          |
-| ------- | ------------------ |
-| 1.0.x   | :white_check_mark: |
-| < 1.0   | :x:                |
+**DO NOT** file public GitHub issues for security vulnerabilities.
+If you believe you have found a security vulnerability in PhishVault-2 (e.g., Remote Code Execution via artifact processing, SQL Injection, Logic Bypasses), please report it immediately to the **Internal Security Team**.
 
-> 📌 **Note:** Only `v1.0.x` and above are actively maintained for security patches and critical bug fixes.
+* **Email**: <security-team@phishvault.internal>
+* **Slack**: `#security-incidents` (Urgent)
 
----
+We will investigate all legitimate reports and do our best to quickly fix the problem.
 
-## 📣 Reporting a Vulnerability
+## 2. Developer Safety Protocol
 
-We take security seriously and appreciate your help in responsibly disclosing vulnerabilities.
+**ALL Developers and Analysts MUST adhere to the following:**
 
-### 📍 Where to Report
+* **Sandboxing**: Never execute the `services/scanner` module on a personal host machine without proper containerization. It executes untrusted JavaScript.
+* **Artifact Handling**: Treat all files in `storage/artifacts/` as toxic. Do not double-click `.html`, `.pdf`, or `.js` files exported from the system on a production Windows/Mac workstation.
+* **Egress Controls**: The scanner makes outbound connections to malicious infrastructure. Ensure your IP masking (VPN/Proxy) is active before running live scans.
 
-Please report any suspected security issues via **[Email](mailto:varmacstp25@gmail.com)** or contact either of the maintainers directly through GitHub or LinkedIn.
+## 3. Supported Versions
 
-- **PardhuVarma** – [GitHub](https://github.com/PardhuSreeRushiVarma20060119) | [LinkedIn](#)
-- **Tejaswini (Teju)** – [GitHub](https://github.com/Tejaswini4119) | [LinkedIn](#)
-
-### 🕒 Response Expectations
-
-- You will receive an initial response within **48 hours**
-- Ongoing updates will be provided every **3–5 business days**
-- Once validated, we will work to resolve the issue in the **shortest timeframe possible**
-
-### 📜 What to Include
-
-Please provide as much information as possible, including:
-
-- A clear and descriptive title
-- Steps to reproduce the issue (if applicable)
-- Screenshots, logs, or code snippets (if helpful)
-- Impact assessment (potential risk/severity)
-
-### ✅ What Happens Next
-
-- The issue will be reviewed by the maintainers
-- A fix or mitigation will be developed and prioritized
-- Once resolved, a patch release will be made and publicly documented
-- Credit will be given if desired
+| Version | Supported | Notes |
+| :--- | :--- | :--- |
+| **v2.x (Phase 3)** | ✅ Yes | Active Development Branch. |
+| v1.x (Legacy) | ❌ No | Deprecated. Unsafe for modern threats. |
 
 ---
-
-> Thank you for helping us improve the security and integrity of **PhishVault**.
-
-© 2025 PhishVault Security Team
-
+**Confidence in Code, Caution in Execution.**

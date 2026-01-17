@@ -1,7 +1,7 @@
+<div align="center">
+  
 # Security Policy
-
-> **⛔ DANGER: LIVE MALWARE HANDLING**
-> This system is designed to ingest, process, and analyze active malicious payloads, including phishing kits and exploit code.
+</div>
 
 ## 1. Reporting a Vulnerability
 
@@ -29,4 +29,7 @@ We will investigate all legitimate reports and do our best to quickly fix the pr
 | v1.x (Legacy) | ❌ No | Deprecated. Unsafe for modern threats. |
 
 ---
+<div align="center">
+  
 **Confidence in Code, Caution in Execution.**
+</div>

@@ -11,7 +11,9 @@ import (
 // PolicyInput represents the data fed into OPA.
 type PolicyInput struct {
 	VisualMatchScore float64 `json:"visual_match_score"`
-	NLPUrgencyScore  float64 `json:"nlp_urgency_score"`
+	UrgencyScore     float64 `json:"urgency_score"`
+	Intent           string  `json:"intent"` // e.g. "CredentialHarvesting"
+	HasLoginForm     bool    `json:"has_login_form"`
 	DomainAgeDays    int     `json:"domain_age_days"`
 }
 

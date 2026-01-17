@@ -5,15 +5,19 @@ default risk_score = 0.0
 
 # Calculate Risk Score
 risk_score = score {
-	score := (visual_score * 0.5) + (urgency_score * 0.3) + (base_risk * 0.2)
+	score := (visual_score * 0.4) + (urgency_score * 0.2) + (intent_score * 0.3) + base_risk
 }
 
 # Factors
 visual_score = input.visual_match_score
-urgency_score = input.nlp_urgency_score
+urgency_score = input.urgency_score
 
-# Base Risk (e.g., from age or blacklists - placeholder for now)
-base_risk = 1.0 { input.domain_age_days < 30 } else = 0.0
+intent_score = 1.0 { input.intent == "CredentialHarvesting" } 
+else = 0.8 { input.intent == "MalwareDistribuition" }
+else = 0.0
+
+# Boost risk if visual match + login form exists
+base_risk = 0.2 { input.has_login_form == true; input.visual_match_score > 0.5 } else = 0.0
 
 # Verdict Rules
 verdict = "MALICIOUS" {

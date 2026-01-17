@@ -1,6 +1,8 @@
-# Contributing Guidelines
+<div align="center">
 
-> **⚠️ INTERNAL DEVELOPMENT ONLY ⚠️**
+# Contributing Guidelines
+ **⚠️ INTERNAL DEVELOPMENT ONLY ⚠️**
+</div>
 
 ### ⛔ No External Contributions
 
@@ -19,4 +21,6 @@ For authorized team members (`Dev 1`, `Dev 2`):
 3. **Reviews**: All PRs must pass the `go test` suite and receive 1 approval.
 
 ---
+<div align="center">
 © 2026 PhishVault Development Team
+</div>

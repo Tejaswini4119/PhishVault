@@ -8,8 +8,8 @@ import (
 	"net/http"
 	"time"
 
-	"phishvault/core/domain"
-	"phishvault/services/ingestion/parser"
+	"github.com/PhishVault/PhishVault-2/core/domain"
+	"github.com/PhishVault/PhishVault-2/services/ingestion/parser"
 )
 
 var producer *Producer

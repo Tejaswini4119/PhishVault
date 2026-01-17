@@ -2,7 +2,7 @@
 
 # Version 2 — Development Notice
 
-> **⚠️ Ongoing work may introduce changes that are not yet documented or finalized.**
+**⚠️ Ongoing work may introduce changes that are not yet documented or finalized. ⚠️**
 
 ### 📋 System Status: Phase 3 (Intelligence Layer)
 

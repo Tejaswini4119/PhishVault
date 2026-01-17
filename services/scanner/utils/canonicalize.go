@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"fmt"
 	"net/http"
 	"net/url"
 	"time"
@@ -9,17 +10,25 @@ import (
 // CanonicalizeURL strips tracking parameters and resolves the final URL.
 // It returns the cleaned URL or an error if processing fails.
 func CanonicalizeURL(rawURL string) (string, error) {
+	// 1. Input Validation
+	if rawURL == "" {
+		return "", fmt.Errorf("empty URL")
+	}
+
 	// 1. Parse the URL
 	parsedURL, err := url.Parse(rawURL)
 	if err != nil {
 		return "", err
+	}
+	if parsedURL.Scheme == "" || parsedURL.Host == "" {
+		return "", fmt.Errorf("invalid URL: missing scheme or host")
 	}
 
 	// 2. Strip tracking parameters
 	q := parsedURL.Query()
 	trackingParams := []string{
 		"utm_source", "utm_medium", "utm_campaign", "utm_term", "utm_content",
-		"fbclid", "gclid", "ref", "source",
+		"fbclid", "gclid", "ref", "source", "msclkid", "dclid", "zanpid",
 	}
 	for _, param := range trackingParams {
 		q.Del(param)

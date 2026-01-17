@@ -1,6 +1,7 @@
 package scanner_test
 
 import (
+	"context"
 	"testing"
 
 	"github.com/PhishVault/PhishVault-2/services/scanner/browser"
@@ -23,7 +24,8 @@ func TestCanonicalize(t *testing.T) {
 
 func TestFetch(t *testing.T) {
 	f := fetcher.NewFetcher()
-	code, headers, err := f.FetchHeaders("http://example.com")
+	code, headers, err := f.FetchHeaders(context.Background(), "http://example.com")
+
 	if err != nil {
 		t.Fatalf("Fetch failed: %v", err)
 	}
@@ -40,8 +42,9 @@ func TestBrowser(t *testing.T) {
 	}
 	defer b.Close()
 
-	content, screenshot, err := b.ScanURL("http://example.com")
+	content, screenshot, err := b.ScanURL(context.Background(), "http://example.com")
 	if err != nil {
+
 		t.Fatalf("Browser scan failed: %v", err)
 	}
 	t.Logf("Content length: %d", len(content))

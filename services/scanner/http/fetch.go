@@ -1,6 +1,7 @@
 package fetcher
 
 import (
+	"context"
 	"net/http"
 	"time"
 )
@@ -29,8 +30,8 @@ func NewFetcher() *Fetcher {
 
 // FetchHeaders retrieves the headers and status code for a given URL.
 // It performs a GET request but closes the body immediately to save bandwidth.
-func (f *Fetcher) FetchHeaders(targetURL string) (int, http.Header, error) {
-	req, err := http.NewRequest("GET", targetURL, nil)
+func (f *Fetcher) FetchHeaders(ctx context.Context, targetURL string) (int, http.Header, error) {
+	req, err := http.NewRequestWithContext(ctx, "GET", targetURL, nil)
 	if err != nil {
 		return 0, nil, err
 	}

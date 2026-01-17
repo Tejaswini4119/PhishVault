@@ -72,6 +72,22 @@ func (b *BrowserScanner) ScanURL(ctx context.Context, url string) (string, []byt
 			Object.defineProperty(navigator, 'webdriver', {
 				get: () => undefined,
 			});
+
+			// --- WebGL Spoofing (Stealth Module) ---
+			// Override getParameter to hide Headless evidence
+			const getParameter = WebGLRenderingContext.prototype.getParameter;
+			WebGLRenderingContext.prototype.getParameter = function(parameter) {
+				// UNMASKED_VENDOR_WEBGL
+				if (parameter === 37445) {
+					return 'Intel Inc.';
+				}
+				// UNMASKED_RENDERER_WEBGL
+				if (parameter === 37446) {
+					return 'Intel Iris OpenGL Engine';
+				}
+				return getParameter(parameter);
+			};
+
 			// Pass basic bot tests
 			window.chrome = { runtime: {} };
 			Object.defineProperty(navigator, 'plugins', {

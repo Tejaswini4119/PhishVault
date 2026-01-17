@@ -74,10 +74,7 @@ func submitEmailHandler(w http.ResponseWriter, r *http.Request) {
 	scanID := fmt.Sprintf("%x", sha256.Sum256([]byte(emailData.Subject+time.Now().String())))
 
 	// Perform basic header analysis (e.g. SPF)
-	spfResult := "UNKNOWN"
-	if spf, ok := emailData.Headers["Received-SPF"]; ok {
-		spfResult = parser.AnalyzeSPF(spf)
-	}
+	spfResult := parser.AnalyzeSPF(emailData.Headers)
 
 	// Initialize SAL for Email
 	// In a real system, we would upload attachments to MinIO here and populate Artifacts

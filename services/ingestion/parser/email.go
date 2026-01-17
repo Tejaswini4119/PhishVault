@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io"
 	"net/mail"
-	"strings"
 )
 
 // EmailData holds extracted email information
@@ -53,12 +52,11 @@ func ParseEmail(r io.Reader) (*EmailData, error) {
 	return data, nil
 }
 
-// Basic SPF Check simulation (in real implementation, use a DNS library)
-func AnalyzeSPF(spfHeader string) string {
-	if strings.Contains(strings.ToLower(spfHeader), "pass") {
-		return "PASS"
-	} else if strings.Contains(strings.ToLower(spfHeader), "fail") {
-		return "FAIL"
-	}
-	return "UNKNOWN"
+// AnalyzeSPF delegates to the robust AuthHeader parser.
+// In the future, this function signature might change to return the full AuthResult,
+// but for compatibility with main.go we return a summary string for now.
+func AnalyzeSPF(headers map[string]string) string {
+	// Use the robust parser
+	res := AnalyzeAuthHeaders(headers)
+	return res.SPF
 }

@@ -10,19 +10,21 @@ import (
 	"github.com/PhishVault/PhishVault-2/core/domain"
 	"github.com/PhishVault/PhishVault-2/services/analysis/ai"
 	"github.com/PhishVault/PhishVault-2/services/analysis/clustering"
+	"github.com/PhishVault/PhishVault-2/services/analysis/config"
 	"github.com/PhishVault/PhishVault-2/services/analysis/decision"
 	"github.com/PhishVault/PhishVault-2/services/analysis/graph"
+	"github.com/PhishVault/PhishVault-2/services/intel"
 )
 
 // Orchestrator manages the flow of intelligence between engines.
 type Orchestrator struct {
 	graphProjector *graph.Projector
 	logger         *slog.Logger
+	cfg            *config.AnalysisConfig
 
 	// Clustering State
 	mu            sync.Mutex
 	clusterBuffer []*clustering.FeatureVector
-	clusterBatch  int
 }
 
 func NewOrchestrator() *Orchestrator {
@@ -31,12 +33,24 @@ func NewOrchestrator() *Orchestrator {
 	ai.InitBayesian()
 
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
+	cfg := config.LoadConfig()
+
+	// Connect to Neo4j
+	var graphDB domain.GraphDatabase
+	neo4jClient, err := intel.NewNeo4jClient(cfg.Neo4jURI, cfg.Neo4jUser, cfg.Neo4jPassword)
+	if err != nil {
+		logger.Error("failed to connect to neo4j, falling back to console adapter", "error", err)
+		// graphDB remains nil, Projector will use ConsoleGraphAdapter
+	} else {
+		logger.Info("connected to neo4j successfully")
+		graphDB = neo4jClient
+	}
 
 	return &Orchestrator{
-		graphProjector: graph.NewProjector(10, nil), // Batch size 10, Console DB
+		graphProjector: graph.NewProjector(cfg.GraphBatchSize, graphDB),
 		logger:         logger,
-		clusterBuffer:  make([]*clustering.FeatureVector, 0, 50),
-		clusterBatch:   20, // Run clustering every 20 new artifacts
+		cfg:            cfg,
+		clusterBuffer:  make([]*clustering.FeatureVector, 0, cfg.ClusterBatchSize),
 	}
 }
 
@@ -141,7 +155,7 @@ func (o *Orchestrator) bufferForClustering(sal domain.SAL, vHash uint64) {
 	}
 	o.clusterBuffer = append(o.clusterBuffer, fv)
 
-	if len(o.clusterBuffer) >= o.clusterBatch {
+	if len(o.clusterBuffer) >= o.cfg.ClusterBatchSize {
 		o.runClustering()
 	}
 }
@@ -171,4 +185,11 @@ func extractIP(sal domain.SAL) string {
 		}
 	}
 	return ""
+}
+
+// Close gracefully shuts down the orchestrator and its components.
+func (o *Orchestrator) Close() {
+	if o.graphProjector != nil {
+		o.graphProjector.Close()
+	}
 }

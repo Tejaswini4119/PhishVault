@@ -65,11 +65,20 @@ func TestOrchestratorIntegration(t *testing.T) {
 
 	// Create a "Phishing" SAL
 	input := domain.SAL{
-		ScanID:    "test-scan-integration",
+		ScanID:    "test-scan-integration-" + time.Now().Format("150405"), // Unique ID per run
 		URL:       "http://login-update.com",
-		FinalURL:  "http://login-update.com",
+		FinalURL:  "http://phishing-site.com/login",
 		Timestamp: time.Now(),
-		Response:  domain.ResponseDetails{
+		RedirectChain: []string{
+			"http://login-update.com",
+			"http://redirector.com/7da8s",
+			"http://phishing-site.com/login",
+		},
+		Entities: []domain.Entity{
+			{Type: "IP", Value: "192.168.1.100", Source: "DNS"},
+			{Type: "ASN", Value: "AS12345", Source: "GeoIP"},
+		},
+		Response: domain.ResponseDetails{
 			// FinalUrl moved to SAL root
 		},
 	}
@@ -81,4 +90,7 @@ func TestOrchestratorIntegration(t *testing.T) {
 
 	t.Logf("Orchestrator Processed Artifact. Verdict: %s", result.Verdict)
 	t.Logf("Generated Signals: %d", len(result.Signals))
+
+	// Flush data to Neo4j
+	orch.Close()
 }

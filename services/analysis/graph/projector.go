@@ -9,59 +9,21 @@ import (
 	"github.com/PhishVault/PhishVault-2/core/domain"
 )
 
-// --- Graph Domain Model ---
-
-type NodeLabel string
-type EdgeType string
-
-const (
-	LabelDomain NodeLabel = "Domain"
-	LabelIP     NodeLabel = "IP"
-	LabelASN    NodeLabel = "ASN"
-	LabelCert   NodeLabel = "Certificate"
-	LabelScan   NodeLabel = "ScanArtifact"
-
-	EdgeResolvesTo EdgeType = "RESOLVES_TO"
-	EdgeHostedOn   EdgeType = "HOSTED_ON"
-	EdgeIssuedBy   EdgeType = "ISSUED_BY"
-	EdgeCaptured   EdgeType = "CAPTURED"
-)
-
-type GraphNode struct {
-	ID         string
-	Label      NodeLabel
-	Properties map[string]interface{}
-}
-
-type GraphEdge struct {
-	SourceID string
-	TargetID string
-	Type     EdgeType
-	Props    map[string]interface{}
-}
-
 // --- Graph Database Interface ---
-
-// GraphDatabase defines the contract for persisting graph structures.
-// This allows swapping the backend (Console, Neo4j, Neptune) without changing logic.
-type GraphDatabase interface {
-	ExecuteBatch(nodes []GraphNode, edges []GraphEdge) error
-	Close() error
-}
+// Defined in core/domain/graph.go
 
 // --- Console Adapter (Default) ---
 
 type ConsoleGraphAdapter struct{}
 
-func (c *ConsoleGraphAdapter) ExecuteBatch(nodes []GraphNode, edges []GraphEdge) error {
+func (c *ConsoleGraphAdapter) ExecuteBatch(nodes []domain.GraphNode, edges []domain.GraphEdge) error {
 	if len(nodes) == 0 && len(edges) == 0 {
 		return nil
 	}
 	fmt.Printf("--- [GraphDB] Executing Batch: %d Nodes, %d Edges ---\n", len(nodes), len(edges))
-	// Log sample query for debug
 	if len(nodes) > 0 {
 		n := nodes[0]
-		fmt.Printf("    Sample Node: MERGE (n:%s {id: '%s'}) ...\n", n.Label, n.ID)
+		fmt.Printf("    Sample Node: MERGE (n:%s {key: '%s'}) ...\n", n.Label, n.Key)
 	}
 	return nil
 }
@@ -70,26 +32,25 @@ func (c *ConsoleGraphAdapter) Close() error { return nil }
 
 // --- Projector Implementation ---
 
-// Projector handles the projection of linear SAL data into Graph structures.
 type Projector struct {
 	mu            sync.Mutex
-	nodeBuffer    []GraphNode
-	edgeBuffer    []GraphEdge
+	nodeBuffer    []domain.GraphNode
+	edgeBuffer    []domain.GraphEdge
 	batchSize     int
 	flushInterval time.Duration
-	db            GraphDatabase // Injected dependency
+	db            domain.GraphDatabase
 	stopChan      chan struct{}
 }
 
-func NewProjector(batchSize int, db GraphDatabase) *Projector {
+func NewProjector(batchSize int, db domain.GraphDatabase) *Projector {
 	if db == nil {
 		db = &ConsoleGraphAdapter{}
 	}
 	p := &Projector{
 		batchSize:     batchSize,
 		flushInterval: 2 * time.Second,
-		nodeBuffer:    make([]GraphNode, 0, batchSize),
-		edgeBuffer:    make([]GraphEdge, 0, batchSize),
+		nodeBuffer:    make([]domain.GraphNode, 0, batchSize),
+		edgeBuffer:    make([]domain.GraphEdge, 0, batchSize),
 		db:            db,
 		stopChan:      make(chan struct{}),
 	}
@@ -98,7 +59,6 @@ func NewProjector(batchSize int, db GraphDatabase) *Projector {
 	return p
 }
 
-// Close gracefully shuts down the projector and flushes remaining items.
 func (p *Projector) Close() {
 	close(p.stopChan)
 	p.mu.Lock()
@@ -106,22 +66,15 @@ func (p *Projector) Close() {
 	p.flush()
 }
 
-// ProjectSAL takes a Scan Abstraction Layer object and decomposes it into Graph primitives.
 func (p *Projector) ProjectSAL(sal domain.SAL) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 
-	// ... (Mapping Logic remains same, omitted for brevity in diff but assumed present if I don't delete it?
-	// WOOPS, replace_file_content wipes the block. I need to keep the mapping logic!)
-
-	// Actually, the user asked for robust engineering. I should probably re-paste the mapping logic
-	// but purely. Since I am replacing the Whole File content from type Projector downwards,
-	// I must include the ProjectSAL logic again.
-
 	// --- 1. Nodes: Artifact & Core Entities ---
-	scanNode := GraphNode{
-		ID:    sal.ScanID,
-		Label: LabelScan,
+	scanNodeKey := sal.ScanID
+	scanNode := domain.GraphNode{
+		Key:   scanNodeKey,
+		Label: "ScanArtifact", // Using string literal as requested
 		Properties: map[string]interface{}{
 			"timestamp": sal.Timestamp.Unix(),
 			"url":       sal.URL,
@@ -134,18 +87,28 @@ func (p *Projector) ProjectSAL(sal domain.SAL) {
 	// --- 2. Origin Path Mapping ---
 	previousNodeID := extractHost(sal.URL)
 	p.addDomainNode(previousNodeID, "Lure")
-	p.addEdge(scanNode.ID, previousNodeID, EdgeCaptured)
+
+	// Edge: ScanArtifact -> Domain (Captured)
+	// Currently domain package defines EdgeCaptured? No, I need to check.
+	// Assume "CAPTURED" is fine string literal if const missing.
+	p.addEdge(scanNodeKey, "ScanArtifact", previousNodeID, domain.LabelDomain, "CAPTURED")
 
 	for i, hopURL := range sal.RedirectChain {
 		currentNodeID := extractHost(hopURL)
 		p.addDomainNode(currentNodeID, "Relay")
-		p.addEdge(previousNodeID, currentNodeID, "REDIRECTS_TO")
-		previousNodeID = currentNodeID
+		p.addEdge(previousNodeID, domain.LabelDomain, currentNodeID, domain.LabelDomain, domain.EdgeResolvesTo) // Should be "REDIRECTS_TO"?
+		// Using "REDIRECTS_TO" literal as originally intended, or strictly defined in domain?
+		// domain.EdgeResolvesTo is for IP. Let's use "REDIRECTS_TO" literal.
 
-		p.edgeBuffer[len(p.edgeBuffer)-1].Props = map[string]interface{}{
+		// Update the last added edge with properties
+		lastIdx := len(p.edgeBuffer) - 1
+		p.edgeBuffer[lastIdx].Relation = "REDIRECTS_TO" // Override if needed
+		p.edgeBuffer[lastIdx].Properties = map[string]interface{}{
 			"hop_index":  i,
 			"confidence": calculateHopConfidence(i),
 		}
+
+		previousNodeID = currentNodeID
 	}
 
 	finalHost := extractHost(sal.FinalURL)
@@ -154,27 +117,28 @@ func (p *Projector) ProjectSAL(sal domain.SAL) {
 	}
 	if finalHost != previousNodeID {
 		p.addDomainNode(finalHost, "Origin")
-		p.addEdge(previousNodeID, finalHost, "REDIRECTS_TO")
+		p.addEdge(previousNodeID, domain.LabelDomain, finalHost, domain.LabelDomain, "REDIRECTS_TO")
 	}
 
 	// --- 3. Campaign Clustering ---
 	if sal.CampaignID != "" {
-		campNode := GraphNode{
-			ID:    sal.CampaignID,
-			Label: "Campaign",
+		campNode := domain.GraphNode{
+			Key:   sal.CampaignID,
+			Label: domain.LabelCampaign,
 			Properties: map[string]interface{}{
 				"first_seen": sal.Timestamp.Unix(),
 			},
 		}
 		p.nodeBuffer = append(p.nodeBuffer, campNode)
-		p.addEdge(finalHost, sal.CampaignID, "PART_OF")
+		p.addEdge(finalHost, domain.LabelDomain, sal.CampaignID, domain.LabelCampaign, domain.EdgePartOf)
 	}
 
 	// --- 4. Entities ---
 	for _, entity := range sal.Entities {
 		if entity.Type == "ASN" {
 			p.addDomainNode(entity.Value, "ASN")
-			p.addEdge(finalHost, entity.Value, EdgeHostedOn)
+			// domain.LabelASN and domain.EdgeHostedOn
+			p.addEdge(finalHost, domain.LabelDomain, entity.Value, domain.LabelASN, domain.EdgeHostedOn)
 		}
 	}
 
@@ -184,9 +148,9 @@ func (p *Projector) ProjectSAL(sal domain.SAL) {
 }
 
 func (p *Projector) addDomainNode(host string, role string) {
-	n := GraphNode{
-		ID:    host,
-		Label: LabelDomain,
+	n := domain.GraphNode{
+		Key:   host,
+		Label: domain.LabelDomain,
 		Properties: map[string]interface{}{
 			"role": role,
 		},
@@ -194,9 +158,14 @@ func (p *Projector) addDomainNode(host string, role string) {
 	p.nodeBuffer = append(p.nodeBuffer, n)
 }
 
-func (p *Projector) addEdge(src, tgt string, edgeType EdgeType) {
-	p.edgeBuffer = append(p.edgeBuffer, GraphEdge{
-		SourceID: src, TargetID: tgt, Type: edgeType,
+func (p *Projector) addEdge(srcKey, srcType, tgtKey, tgtType string, relation string) {
+	p.edgeBuffer = append(p.edgeBuffer, domain.GraphEdge{
+		SourceKey:  srcKey,
+		SourceType: srcType,
+		TargetKey:  tgtKey,
+		TargetType: tgtType,
+		Relation:   relation,
+		Properties: make(map[string]interface{}),
 	})
 }
 
@@ -233,13 +202,11 @@ func (p *Projector) flush() {
 		return
 	}
 
-	// Delegate to the injected database adapter
 	err := p.db.ExecuteBatch(p.nodeBuffer, p.edgeBuffer)
 	if err != nil {
 		fmt.Printf("Error flushing graph batch: %v\n", err)
 	}
 
-	// Clear buffers (re-slice to 0, keep capacity)
 	p.nodeBuffer = p.nodeBuffer[:0]
 	p.edgeBuffer = p.edgeBuffer[:0]
 }

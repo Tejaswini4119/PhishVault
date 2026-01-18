@@ -9,11 +9,11 @@ import (
 
 // Mock Adapter for Testing
 type TestGraphAdapter struct {
-	Nodes []GraphNode
-	Edges []GraphEdge
+	Nodes []domain.GraphNode
+	Edges []domain.GraphEdge
 }
 
-func (t *TestGraphAdapter) ExecuteBatch(nodes []GraphNode, edges []GraphEdge) error {
+func (t *TestGraphAdapter) ExecuteBatch(nodes []domain.GraphNode, edges []domain.GraphEdge) error {
 	t.Nodes = append(t.Nodes, nodes...)
 	t.Edges = append(t.Edges, edges...)
 	return nil
@@ -48,7 +48,8 @@ func TestProjector(t *testing.T) {
 
 	foundScan := false
 	for _, n := range mockDB.Nodes {
-		if n.Label == LabelScan && n.ID == "scan1" {
+		// LabelScan string literal "ScanArtifact" used in projector.go
+		if n.Label == "ScanArtifact" && n.Key == "scan1" {
 			foundScan = true
 			break
 		}

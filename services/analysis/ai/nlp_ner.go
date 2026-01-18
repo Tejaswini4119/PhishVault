@@ -1,7 +1,7 @@
 package ai
 
 import (
-	"fmt"
+	"log/slog"
 	"strings"
 
 	"github.com/jdkato/prose/v2"
@@ -62,7 +62,7 @@ func CheckBrandMismatch(brands []string, domain string) bool {
 
 		// Found a brand that is NOT in the domain
 		// This is a mismatch signal (Potential Phishing)
-		fmt.Printf("Brand Mismatch Detected: %s in %s\n", brand, domain)
+		slog.Warn("brand mismatch detected", "brand", brand, "domain", domain)
 		return true
 	}
 

@@ -12,6 +12,10 @@ type AnalysisConfig struct {
 	Neo4jURI         string
 	Neo4jUser        string
 	Neo4jPassword    string
+	MinIOEndpoint    string
+	MinIOAccessKey   string
+	MinIOSecretKey   string
+	MinIOBucket      string
 }
 
 // LoadConfig reads configuration from environment variables or usage defaults.
@@ -22,6 +26,10 @@ func LoadConfig() *AnalysisConfig {
 		Neo4jURI:         getEnv("NEO4J_URI", "neo4j://localhost:7687"),
 		Neo4jUser:        getEnv("NEO4J_USER", "neo4j"),
 		Neo4jPassword:    getEnv("NEO4J_PASSWORD", "password"),
+		MinIOEndpoint:    getEnv("MINIO_ENDPOINT", "localhost:9000"),
+		MinIOAccessKey:   getEnv("MINIO_ACCESS_KEY", "minioadmin"),
+		MinIOSecretKey:   getEnv("MINIO_SECRET_KEY", "minioadmin"),
+		MinIOBucket:      getEnv("MINIO_BUCKET", "phishvault-artifacts"),
 	}
 }
 

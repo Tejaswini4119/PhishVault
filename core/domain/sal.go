@@ -71,5 +71,6 @@ type ResponseDetails struct {
 type Artifacts struct {
 	ScreenshotPath string `json:"screenshot_path,omitempty"` // Path or URL to screenshot
 	DOMPath        string `json:"dom_path,omitempty"`        // Path or URL to stored DOM
+	RawContent     string `json:"raw_content,omitempty"`     // In-memory content for immediate analysis
 	VisualHash     string `json:"visual_hash,omitempty"`     // pHash/dHash
 }

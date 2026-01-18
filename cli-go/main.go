@@ -11,8 +11,8 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 
-	"github.com/PhishVault/PhishVault-2/cli/integration"
-	"github.com/PhishVault/PhishVault-2/cli/views"
+	"github.com/PhishVault/PhishVault-2/cli-go/integration"
+	"github.com/PhishVault/PhishVault-2/cli-go/views"
 	"github.com/PhishVault/PhishVault-2/core/domain"
 )
 
@@ -89,10 +89,10 @@ func initialModel() model {
 	tiUrl.TextStyle = views.InputStyle
 
 	items := []views.MenuItem{
-		{"SYSTEM STATUS", "Check container health metrics"},
-		{"INTELLIGENCE SCAN", "Deep analysis of URL artifacts"},
-		{"CAMPAIGN DB", "Search historical campaign graphs"}, // Placeholder
-		{"EXIT", "Terminate session"},
+		{Title: "SYSTEM STATUS", Desc: "Check container health metrics"},
+		{Title: "INTELLIGENCE SCAN", Desc: "Deep analysis of URL artifacts"},
+		{Title: "CAMPAIGN DB", Desc: "Search historical campaign graphs"}, // Placeholder
+		{Title: "EXIT", Desc: "Terminate session"},
 	}
 
 	return model{

@@ -36,7 +36,12 @@ func TestFetch(t *testing.T) {
 func TestBrowser(t *testing.T) {
 	// Skip verification if Playwright is not installed fully
 	// This test might fail if 'playwright install' wasn't run.
-	b, err := browser.NewBrowserScanner()
+	cfg := browser.ScannerConfig{
+		Headless:   true,
+		TimeoutMs:  30000,
+		UseStealth: false,
+	}
+	b, err := browser.NewBrowserScanner(cfg)
 	if err != nil {
 		t.Skipf("Skipping browser test: %v", err)
 	}

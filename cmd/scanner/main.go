@@ -9,8 +9,12 @@ import (
 	"time"
 
 	"github.com/PhishVault/PhishVault-2/core/domain"
+	"github.com/PhishVault/PhishVault-2/services/alerting"
 	"github.com/PhishVault/PhishVault-2/services/analysis"
+	"github.com/PhishVault/PhishVault-2/services/analysis/config"
+	"github.com/PhishVault/PhishVault-2/services/reporting"
 	"github.com/PhishVault/PhishVault-2/services/scanner/browser"
+	"github.com/PhishVault/PhishVault-2/services/storage"
 )
 
 // Event structure for JSON output to Rust CLI
@@ -28,6 +32,11 @@ func emit(typ, msg string, payload interface{}) {
 
 func main() {
 	urlPtr := flag.String("url", "", "Target URL to scan")
+	headlessPtr := flag.Bool("headless", true, "Run in headless mode")
+	stealthPtr := flag.Bool("stealth", true, "Enable stealth modules")
+	timeoutPtr := flag.Int("timeout", 30000, "Timeout in ms")
+	reportFormat := flag.String("format", "json", "Report format (json, text)")
+	reportOut := flag.String("out", "", "Output file path (optional)")
 	flag.Parse()
 
 	if *urlPtr == "" {
@@ -45,7 +54,12 @@ func main() {
 
 	// 2. Initialize Browser Scanner (Playwright)
 	emit("log", "Launching Headless Browser (Stealth Mode)...", nil)
-	scanner, err := browser.NewBrowserScanner()
+	cfg := browser.ScannerConfig{
+		Headless:   *headlessPtr,
+		UseStealth: *stealthPtr,
+		TimeoutMs:  float64(*timeoutPtr),
+	}
+	scanner, err := browser.NewBrowserScanner(cfg)
 	if err != nil {
 		emit("error", fmt.Sprintf("Failed to launch browser: %v", err), nil)
 		// Fallback or Exit? For MVP, let's exit, but maybe mock if dev env?
@@ -65,12 +79,48 @@ func main() {
 	var sal domain.SAL
 
 	if scanner != nil {
-		content, _, err := scanner.ScanURL(ctx, targetURL)
+		content, screenshot, err := scanner.ScanURL(ctx, targetURL)
 		if err != nil {
 			emit("error", fmt.Sprintf("Scan failed: %v", err), nil)
 			return
 		}
 		emit("log", "DOM Content Captured (Size: "+fmt.Sprintf("%d", len(content))+" bytes)", nil)
+
+		// 2.5 Storage Layer: Upload Artifacts
+		// Load Config
+		appCfg := config.LoadConfig()
+
+		// Init MinIO
+		store, err := storage.NewStorageManager(appCfg.MinIOEndpoint, appCfg.MinIOAccessKey, appCfg.MinIOSecretKey, appCfg.MinIOBucket)
+		var domPath, screenPath string
+
+		if err != nil {
+			emit("error", fmt.Sprintf("Storage init failed: %v", err), nil)
+		} else {
+			// Save Content to temp file then upload
+			// MVP: Saving simply to disk logic inside ScanURL might be better, but we have bytes here.
+			// Let's create temp files.
+			domTmp, _ := os.CreateTemp("", "dom-*.html")
+			domTmp.WriteString(content) // content is string
+			domTmp.Close()
+
+			objName := fmt.Sprintf("%s/dom.html", fmt.Sprintf("scan-%d", time.Now().Unix()))
+			if err := store.UploadFile(context.Background(), objName, domTmp.Name(), "text/html"); err == nil {
+				domPath = objName
+			}
+			os.Remove(domTmp.Name()) // Clean up
+
+			// Screenshot
+			screenTmp, _ := os.CreateTemp("", "screen-*.png")
+			screenTmp.Write(screenshot)
+			screenTmp.Close()
+
+			screenObj := fmt.Sprintf("%s/screenshot.png", fmt.Sprintf("scan-%d", time.Now().Unix()))
+			if err := store.UploadFile(context.Background(), screenObj, screenTmp.Name(), "image/png"); err == nil {
+				screenPath = screenObj
+			}
+			os.Remove(screenTmp.Name())
+		}
 
 		// Create SAL from scan data
 		sal = domain.SAL{
@@ -78,7 +128,10 @@ func main() {
 			URL:       targetURL,
 			Timestamp: time.Now(),
 			Artifacts: domain.Artifacts{
-				VisualHash: "8899aabbccddeeff", // Mock hash for VisualAI
+				VisualHash:     "8899aabbccddeeff", // Mock hash for VisualAI
+				RawContent:     content,
+				DOMPath:        domPath,
+				ScreenshotPath: screenPath,
 			},
 			Entities: []domain.Entity{
 				{Type: "IP", Value: "1.2.3.4", Source: "DNS"}, // Mock enrichment
@@ -120,4 +173,23 @@ func main() {
 
 	// 5. Emit Final Result
 	emit("result", "Scan Completed", finalSal)
+
+	// 5.5 Alerting
+	alerter := alerting.NewDispatcher()
+	alerter.CheckAndDispatch(finalSal)
+
+	// 6. Generate Report
+	if *reportOut != "" {
+		rg := reporting.NewReportGenerator()
+		data, err := rg.Generate(finalSal, *reportFormat)
+		if err != nil {
+			emit("error", fmt.Sprintf("Report generation failed: %v", err), nil)
+		} else {
+			if err := os.WriteFile(*reportOut, data, 0644); err != nil {
+				emit("error", fmt.Sprintf("Failed to write report: %v", err), nil)
+			} else {
+				emit("log", fmt.Sprintf("Report saved to %s", *reportOut), nil)
+			}
+		}
+	}
 }

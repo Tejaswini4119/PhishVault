@@ -12,17 +12,24 @@ import (
 type BrowserScanner struct {
 	pw      *playwright.Playwright
 	browser playwright.Browser
+	cfg     ScannerConfig
 }
 
-// NewBrowserScanner initializes a new Playwright scanner.
-// It launches the browser instance.
-func NewBrowserScanner() (*BrowserScanner, error) {
+// ScannerConfig holds the configuration for the browser scanner.
+type ScannerConfig struct {
+	Headless   bool
+	TimeoutMs  float64
+	UseStealth bool
+}
+
+// NewBrowserScanner initializes a new Playwright scanner with config.
+func NewBrowserScanner(cfg ScannerConfig) (*BrowserScanner, error) {
 	pw, err := playwright.Run()
 	if err != nil {
 		return nil, fmt.Errorf("could not start playwright: %w", err)
 	}
 	browser, err := pw.Chromium.Launch(playwright.BrowserTypeLaunchOptions{
-		Headless: playwright.Bool(true),
+		Headless: playwright.Bool(cfg.Headless),
 	})
 	if err != nil {
 		pw.Stop()
@@ -31,6 +38,7 @@ func NewBrowserScanner() (*BrowserScanner, error) {
 	return &BrowserScanner{
 		pw:      pw,
 		browser: browser,
+		cfg:     cfg,
 	}, nil
 }
 
@@ -65,41 +73,43 @@ func (b *BrowserScanner) ScanURL(ctx context.Context, url string) (string, []byt
 	}
 	defer page.Close()
 
-	// 2. Stealth: Inject Evasion Scripts
-	// Mask navigator.webdriver
-	if err := page.AddInitScript(playwright.Script{
-		Content: playwright.String(`
-			Object.defineProperty(navigator, 'webdriver', {
-				get: () => undefined,
-			});
-
-			// --- WebGL Spoofing (Stealth Module) ---
-			// Override getParameter to hide Headless evidence
-			const getParameter = WebGLRenderingContext.prototype.getParameter;
-			WebGLRenderingContext.prototype.getParameter = function(parameter) {
-				// UNMASKED_VENDOR_WEBGL
-				if (parameter === 37445) {
-					return 'Intel Inc.';
-				}
-				// UNMASKED_RENDERER_WEBGL
-				if (parameter === 37446) {
-					return 'Intel Iris OpenGL Engine';
-				}
-				return getParameter(parameter);
-			};
-
-			// Pass basic bot tests
-			window.chrome = { runtime: {} };
-			Object.defineProperty(navigator, 'plugins', {
-				get: () => [1, 2, 3, 4, 5],
-			});
-			Object.defineProperty(navigator, 'languages', {
-				get: () => ['en-US', 'en'],
-			});
-		`),
-	}); err != nil {
-		// Log error but continue
-		fmt.Printf("Warning: could not inject stealth scripts: %v\n", err)
+	// 2. Stealth: Inject Evasion Scripts (If Enabled)
+	if b.cfg.UseStealth {
+		// Mask navigator.webdriver
+		if err := page.AddInitScript(playwright.Script{
+			Content: playwright.String(`
+                Object.defineProperty(navigator, 'webdriver', {
+                    get: () => undefined,
+                });
+    
+                // --- WebGL Spoofing (Stealth Module) ---
+                // Override getParameter to hide Headless evidence
+                const getParameter = WebGLRenderingContext.prototype.getParameter;
+                WebGLRenderingContext.prototype.getParameter = function(parameter) {
+                    // UNMASKED_VENDOR_WEBGL
+                    if (parameter === 37445) {
+                        return 'Intel Inc.';
+                    }
+                    // UNMASKED_RENDERER_WEBGL
+                    if (parameter === 37446) {
+                        return 'Intel Iris OpenGL Engine';
+                    }
+                    return getParameter(parameter);
+                };
+    
+                // Pass basic bot tests
+                window.chrome = { runtime: {} };
+                Object.defineProperty(navigator, 'plugins', {
+                    get: () => [1, 2, 3, 4, 5],
+                });
+                Object.defineProperty(navigator, 'languages', {
+                    get: () => ['en-US', 'en'],
+                });
+            `),
+		}); err != nil {
+			// Log error but continue
+			fmt.Printf("Warning: could not inject stealth scripts: %v\n", err)
+		}
 	}
 
 	// 3. Enable Route Blocking for resources
@@ -113,21 +123,16 @@ func (b *BrowserScanner) ScanURL(ctx context.Context, url string) (string, []byt
 		route.Continue()
 	})
 	if err != nil {
-		// Log error but continue? or return?
-		// For now, let's proceed even if routing fails, but it's unlikely.
+		// Log error but continue?
 	}
 
-	// 2. Navigate with Timeout from Context?
-	// Playwright doesn't take context directly in Goto, but we can set timeout based on context deadline if present.
-	// However, we can use a fixed timeout for now, or just rely on the Playwright timeout.
-	// There isn't a direct "GotoWithContext" in this version of the bindings usually.
-	// But we can check context before starting.
+	// 2. Navigate
 	if ctx.Err() != nil {
 		return "", nil, ctx.Err()
 	}
 
 	_, err = page.Goto(url, playwright.PageGotoOptions{
-		Timeout:   playwright.Float(30000), // 30 seconds
+		Timeout:   playwright.Float(b.cfg.TimeoutMs),
 		WaitUntil: playwright.WaitUntilStateNetworkidle,
 	})
 	if err != nil {

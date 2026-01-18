@@ -7,6 +7,9 @@ import (
 	"strconv"
 	"sync"
 
+	"net/url"
+	"time"
+
 	"github.com/PhishVault/PhishVault-2/core/domain"
 	"github.com/PhishVault/PhishVault-2/services/analysis/ai"
 	"github.com/PhishVault/PhishVault-2/services/analysis/clustering"
@@ -14,6 +17,7 @@ import (
 	"github.com/PhishVault/PhishVault-2/services/analysis/decision"
 	"github.com/PhishVault/PhishVault-2/services/analysis/graph"
 	"github.com/PhishVault/PhishVault-2/services/intel"
+	"github.com/PhishVault/PhishVault-2/services/intel/provider"
 )
 
 // Orchestrator manages the flow of intelligence between engines.
@@ -90,9 +94,11 @@ func (o *Orchestrator) ProcessArtifact(ctx context.Context, input domain.SAL) (d
 
 	// 2. Deep NLP & Structure
 	// AnalyzeContent returns detailed risk struct.
-	// We use input.URL content as placeholder for now, implicitly trusting text_pipeline handles it or assuming content is loaded.
-	// TODO: Load actual HTML content from Artifacts.Path (MinIO)
-	risk := ai.AnalyzeContent("<html>...</html>", "Verify your account", input.FinalURL)
+	htmlContent := input.Artifacts.RawContent
+	if htmlContent == "" {
+		htmlContent = "<html></html>" // Fallback if missing
+	}
+	risk := ai.AnalyzeContent(htmlContent, "Verify your account", input.FinalURL) // "Verify your account" should ideally come from Text Pipeline extraction
 
 	if risk.Intent != "Benign" {
 		o.logger.Info("malicious intent detected", "intent", risk.Intent, "urgency", risk.UrgencyScore)
@@ -114,13 +120,58 @@ func (o *Orchestrator) ProcessArtifact(ctx context.Context, input domain.SAL) (d
 		})
 	}
 
+	// 2.5 Threat Intelligence (Moved before Verdict)
+	// Extract Domain
+	u, err := url.Parse(input.FinalURL)
+	var domainName string
+	if err == nil {
+		domainName = u.Hostname()
+	} else {
+		domainName = input.FinalURL // Fallback
+	}
+
+	// a. WHOIS Enrichment
+	var domainAgeDays int
+	whoisData, err := provider.FetchWHOIS(domainName)
+	if err == nil {
+		age := time.Since(whoisData.CreationDate).Hours() / 24
+		domainAgeDays = int(age)
+
+		// Signal for young domains
+		if domainAgeDays < 30 {
+			o.logger.Info("young domain detected", "age_days", domainAgeDays)
+			input.Signals = append(input.Signals, domain.Signal{
+				EngineName: "ThreatIntel",
+				SignalKey:  "YOUNG_DOMAIN",
+				Confidence: 1.0,
+				Weight:     0.6,
+				Evidence:   map[string]interface{}{"age_days": domainAgeDays},
+			})
+		}
+	}
+
+	// b. Reputation Check
+	repResults, _ := provider.CheckReputation(domainName)
+	for _, res := range repResults {
+		if res.Malicious {
+			o.logger.Warn("threat feed hit", "source", res.Source, "score", res.Score)
+			input.Signals = append(input.Signals, domain.Signal{
+				EngineName: "ThreatIntel",
+				SignalKey:  "KNOWN_MALICIOUS",
+				Confidence: res.Score,
+				Weight:     1.0, // High certainty
+				Evidence:   map[string]interface{}{"source": res.Source},
+			})
+		}
+	}
+
 	// 3. Verdict (OPA)
 	opaInput := decision.PolicyInput{
 		VisualMatchScore: similarity,
 		UrgencyScore:     risk.UrgencyScore,
 		Intent:           risk.Intent,
 		HasLoginForm:     risk.FormRisk.HasPassword,
-		DomainAgeDays:    0, // need enrichment source
+		DomainAgeDays:    domainAgeDays,
 	}
 
 	verdict, err := decision.EvaluateVerdict(ctx, opaInput)

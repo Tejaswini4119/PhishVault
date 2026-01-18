@@ -3,10 +3,11 @@ package main
 import (
 	"fmt"
 	"os"
-	"strings" // Added strings import
+	"strings"
+	"time"
 
 	"github.com/charmbracelet/bubbles/spinner"
-	"github.com/charmbracelet/bubbles/textinput" // Added textinput import
+	"github.com/charmbracelet/bubbles/textinput"
 	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
@@ -17,10 +18,11 @@ import (
 type state int
 
 const (
-	stateLogin state = iota // New Start State
-	stateMenu
-	stateRunning
-	stateViewingOutput
+	stateLogin state = iota
+	stateDashboard
+	stateScannerInput
+	stateScannerRunning
+	stateScannerResults
 )
 
 type menuItem struct {
@@ -35,12 +37,18 @@ type model struct {
 	// Login Form
 	usernameInput textinput.Model
 	passwordInput textinput.Model
-	focusIndex    int // 0=User, 1=Pass, 2=Submit
+	focusIndex    int
 	loginError    string
 
-	// Menu
+	// Dashboard
 	menuItems []menuItem
 	cursor    int
+
+	// Scanner
+	urlInput     textinput.Model
+	scanProgress string
+	scanResult   string
+	scanTree     []string
 
 	// Common
 	spinner      spinner.Model
@@ -52,102 +60,84 @@ type model struct {
 }
 
 func initialModel() model {
-	// 1. Setup Spinner
+	// 1. Spinner (Dot)
 	s := spinner.New()
-	s.Spinner = spinner.Globe // Changed spinner type
-	s.Style = lipgloss.NewStyle().Foreground(ColorPrimary)
+	s.Spinner = spinner.Dot
+	s.Style = lipgloss.NewStyle().Foreground(ColorLime)
 
-	// 2. Setup Login Inputs
+	// 2. Login
 	tiUser := textinput.New()
-	tiUser.Placeholder = "Username"
+	tiUser.Placeholder = "Enter your username"
 	tiUser.Focus()
 	tiUser.CharLimit = 32
 	tiUser.Width = 30
-	tiUser.TextStyle = lipgloss.NewStyle().Foreground(ColorSecondary)
+	tiUser.TextStyle = InputStyle
 
 	tiPass := textinput.New()
-	tiPass.Placeholder = "Password"
+	tiPass.Placeholder = "Enter your password"
 	tiPass.EchoMode = textinput.EchoPassword
 	tiPass.CharLimit = 32
 	tiPass.Width = 30
-	tiPass.TextStyle = lipgloss.NewStyle().Foreground(ColorSecondary)
+	tiPass.TextStyle = InputStyle
 
-	// 3. Setup Menu
+	// 3. Scanner
+	tiUrl := textinput.New()
+	tiUrl.Placeholder = "Enter target URL..."
+	tiUrl.Width = 40
+	tiUrl.TextStyle = InputStyle
+
 	items := []menuItem{
-		{"► STATUS DASHBOARD", "View running containers and health", checkDockerStatus},
-		{"► START SYSTEM", "Bring up all PhishVault services", startInfrastructure},
-		{"► STOP SYSTEM", "Shutdown all services", stopInfrastructure},
-		{"► RUN INTELLIGENCE TEST", "Execute full analysis pipeline", runAnalysisTest},
-		{"-----------------", "", nil}, // Separator
-		{"● OPEN NEO4J", "Open Graph Database (Neo4j Browser)", func() tea.Cmd { return openBrowser("http://localhost:7474") }},
-		{"● OPEN MINIO", "Open Object Storage (MinIO Console)", func() tea.Cmd { return openBrowser("http://localhost:9001") }},
-		{"● OPEN RABBITMQ", "Open Message Broker (Management UI)", func() tea.Cmd { return openBrowser("http://localhost:15672") }},
-		{"-----------------", "", nil},
-		{"EXIT", "Quit application", nil},
+		{"System Status", "View Containers", checkDockerStatus},
+		{"Start Infrastructure", "Docker Up", startInfrastructure},
+		{"Stop Infrastructure", "Docker Down", stopInfrastructure},
+		{"Intelligence Test", "Run Analysis", runAnalysisTest},
+		{"START NEW SCAN", "Analyze URL", nil},
+		{"Exit", "Quit", nil},
 	}
 
 	return model{
-		state:         stateLogin, // Initial state is Login
+		state:         stateLogin,
 		usernameInput: tiUser,
 		passwordInput: tiPass,
 		menuItems:     items,
 		spinner:       s,
+		urlInput:      tiUrl,
 	}
 }
 
-// --- Init ---
-
 func (m model) Init() tea.Cmd {
-	return tea.Batch(tea.EnterAltScreen, textinput.Blink) // Added textinput.Blink
+	return tea.Batch(tea.EnterAltScreen, textinput.Blink)
 }
-
-// --- Update ---
 
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmd tea.Cmd
 	var cmds []tea.Cmd
 
 	switch msg := msg.(type) {
-
-	// Window Resize
 	case tea.WindowSizeMsg:
 		m.windowWidth = msg.Width
 		m.windowHeight = msg.Height
-
-		headerHeight := lipgloss.Height(m.headerView())
-		footerHeight := lipgloss.Height(m.footerView())
-		verticalMarginHeight := headerHeight + footerHeight
-
-		if !m.isReady {
-			m.viewport = viewport.New(msg.Width, msg.Height-verticalMarginHeight-5)
-			m.viewport.YPosition = headerHeight + 1
-			m.viewport.HighPerformanceRendering = false
-			m.isReady = true
-		} else {
-			m.viewport.Width = msg.Width
-			m.viewport.Height = msg.Height - verticalMarginHeight - 5
-		}
+		m.viewport = viewport.New(msg.Width/2, msg.Height-10) // Half width for viewport
+		m.viewport.YPosition = 0
+		m.isReady = true
 
 	case tea.KeyMsg:
-		switch msg.String() {
-		case "ctrl+c": // Moved ctrl+c here
+		if msg.String() == "ctrl+c" {
 			return m, tea.Quit
 		}
 
-		// LOGIN STATE
+		// --- LOGIN ---
 		if m.state == stateLogin {
 			switch msg.String() {
 			case "enter":
 				if m.focusIndex == 2 {
-					// Check Credentials (phishvault / phishvault-tp2)
 					if m.usernameInput.Value() == "phishvault" && m.passwordInput.Value() == "phishvault-tp2" {
-						m.state = stateMenu
-						m.loginError = "" // Clear any previous error
+						m.state = stateDashboard
 					} else {
-						m.loginError = "Access Denied: Invalid Credentials"
-						m.passwordInput.SetValue("") // Clear password
+						m.loginError = "Invalid Credentials"
+						m.passwordInput.SetValue("")
 					}
-				} else if m.focusIndex < 2 {
+				} else {
 					m.focusIndex++
 				}
 			case "tab", "down":
@@ -156,189 +146,273 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.focusIndex = (m.focusIndex - 1 + 3) % 3
 			}
 
-			// Handle Inputs
 			if m.focusIndex == 0 {
 				m.usernameInput.Focus()
 				m.passwordInput.Blur()
-				m.usernameInput, cmd = m.usernameInput.Update(msg)
-				cmds = append(cmds, cmd)
-			} else if m.focusIndex == 1 {
+			}
+			if m.focusIndex == 1 {
 				m.usernameInput.Blur()
 				m.passwordInput.Focus()
-				m.passwordInput, cmd = m.passwordInput.Update(msg)
-				cmds = append(cmds, cmd)
-			} else {
-				m.usernameInput.Blur()
-				m.passwordInput.Blur()
 			}
+
+			m.usernameInput, cmd = m.usernameInput.Update(msg)
+			cmds = append(cmds, cmd)
+			m.passwordInput, cmd = m.passwordInput.Update(msg)
+			cmds = append(cmds, cmd)
 			return m, tea.Batch(cmds...)
 		}
 
-		// MENU STATE
-		if m.state == stateMenu {
+		// --- DASHBOARD ---
+		if m.state == stateDashboard {
 			switch msg.String() {
-			case "q": // 'q' only quits from menu
-				return m, tea.Quit
 			case "up", "k":
 				if m.cursor > 0 {
 					m.cursor--
-					// Skip separators
-					if m.menuItems[m.cursor].title == "-----------------" {
-						m.cursor--
-					}
 				}
 			case "down", "j":
 				if m.cursor < len(m.menuItems)-1 {
 					m.cursor++
-					// Skip separators
-					if m.menuItems[m.cursor].title == "-----------------" {
-						m.cursor++
-					}
 				}
 			case "enter":
-				selected := m.menuItems[m.cursor]
-				if selected.title == "EXIT" {
+				sel := m.menuItems[m.cursor]
+				if sel.title == "Exit" {
 					return m, tea.Quit
 				}
-				if selected.cmd == nil {
-					return m, nil // Separator or dummy
+				if sel.title == "START NEW SCAN" {
+					m.state = stateScannerInput
+					m.urlInput.Focus()
+					return m, textinput.Blink
 				}
-
-				// If specific command needs different state:
-				if strings.Contains(selected.title, "OPEN") {
-					// Browser commands don't change screen state, just run
-					return m, selected.cmd()
-				}
-
-				m.state = stateRunning
-				m.output = "" // Clear previous output
-				return m, tea.Batch(selected.cmd(), m.spinner.Tick)
+				m.output = "Executing " + sel.title + "..."
+				m.viewport.SetContent(m.output)
+				return m, tea.Batch(sel.cmd(), m.spinner.Tick)
 			}
 		}
 
-		// VIEW/RUNNING STATE
-		if m.state == stateViewingOutput || m.state == stateRunning {
+		// --- SCANNER INPUT ---
+		if m.state == stateScannerInput {
 			switch msg.String() {
-			case "esc", "backspace":
-				m.state = stateMenu
-			default:
-				m.viewport, cmd = m.viewport.Update(msg)
-				cmds = append(cmds, cmd)
+			case "enter":
+				if m.urlInput.Value() != "" {
+					m.state = stateScannerRunning
+					m.scanProgress = "Analyzing..."
+					return m, tea.Batch(runScannerSteps(m.urlInput.Value()), m.spinner.Tick)
+				}
+			case "esc":
+				m.state = stateDashboard
+			}
+			m.urlInput, cmd = m.urlInput.Update(msg)
+			cmds = append(cmds, cmd)
+			return m, tea.Batch(cmds...)
+		}
+
+		if m.state == stateScannerResults || m.state == stateScannerRunning {
+			if msg.String() == "esc" {
+				m.state = stateDashboard
 			}
 		}
 
 	case spinner.TickMsg:
-		if m.state == stateRunning { // Only update spinner if in running state
-			var cmd tea.Cmd
-			m.spinner, cmd = m.spinner.Update(msg)
-			return m, cmd
-		}
+		m.spinner, cmd = m.spinner.Update(msg)
+		return m, cmd
+
+	case TriggerScanMsg:
+		m.scanProgress = msg.Status
+		return m, msg.Cmd
+
+	case ScanResultMsg:
+		m.state = stateScannerResults
+		m.scanTree = msg.Tree
+		m.scanResult = msg.Verdict
 
 	case CommandOutputMsg:
-		m.state = stateViewingOutput
 		m.output = string(msg)
-		m.viewport.SetContent(m.output)
-		m.viewport.GotoBottom()
-
-	case CommandErrorMsg:
-		m.state = stateViewingOutput
-		m.output = fmt.Sprintf("Error: %v", msg)
 		m.viewport.SetContent(m.output)
 	}
 
 	return m, tea.Batch(cmds...)
 }
 
-// --- View ---
-
 func (m model) View() string {
 	if !m.isReady {
-		return "\n  Initializing..."
+		return "Loading..."
 	}
 
-	var s string
-
-	// HEADER / LOGO
-	s += m.headerView() + "\n"
-
-	// CONTENT
-	if m.state == stateLogin {
-		s += m.loginView()
-	} else if m.state == stateMenu {
-		s += MenuHeaderStyle.Render(" OPERATIONS MENU ") + "\n\n"
-		for i, item := range m.menuItems {
-			if item.title == "-----------------" {
-				s += lipgloss.NewStyle().Foreground(ColorBorder).SetString("  --------------------------------").Render() + "\n"
-				continue
-			}
-
-			if m.cursor == i {
-				s += MenuSelectedStyle.Render(item.title) + " " + lipgloss.NewStyle().Foreground(ColorAccent).Render(item.desc) + "\n"
-			} else {
-				s += MenuItemStyle.Render(item.title) + "\n"
-			}
-		}
-	} else if m.state == stateRunning {
-		s += fmt.Sprintf("\n %s Processing request...\n\n", m.spinner.View())
-	} else if m.state == stateViewingOutput {
-		s += OutputPanelStyle.Width(m.windowWidth - 4).Render(m.viewport.View())
-	}
-
-	s += "\n" + m.footerView()
-	return AppStyle.Render(s)
-}
-
-func (m model) loginView() string {
-	var button string
-	if m.focusIndex == 2 {
-		button = lipgloss.NewStyle().Foreground(ColorBg).Background(ColorPrimary).Render("[ LOGIN ]")
-	} else {
-		button = lipgloss.NewStyle().Foreground(ColorFg).Render("[ Login ]")
-	}
-
-	errView := ""
-	if m.loginError != "" {
-		errView = lipgloss.NewStyle().Foreground(ColorError).Render("\n\n" + m.loginError)
-	}
-
-	form := fmt.Sprintf(
-		"Credentials Required\n\n%s\n\n%s\n\n%s%s",
-		m.usernameInput.View(),
-		m.passwordInput.View(),
-		button,
-		errView,
+	// 1. Left Side: The Graphic (Pyramid)
+	left := `
+          +S
+         +SS+
+        +SSSS+
+       +SSSSSS+
+      +SSSSSSSS+
+     +SSSSSSSSSS+
+    +SSSSSSSSSSSS+
+   -SSSSSSSSSSSSSS-
+  -SSSSSSSSSSSSSSSS-
+ -SSSSSSSSSSSSSSSSSS-
++SSSSSSSSSSSSSSSSSSSS+
++SSSSSSSSSSSSSSSSSSSSSS+
+SSSSSSSSSSSSSSSSSSSSSSSS
+`
+	leftView := LogoContainerStyle.Render(
+		LogoTextStyle.Render(left) + "\n\n" +
+			lipgloss.NewStyle().Foreground(ColorDim).Render("PhishVault Gateway v6.0"),
 	)
 
-	return LoginBoxStyle.Render(form)
-}
+	// 2. Right Side: Context Sensitive
+	var rightView string
 
-func (m model) headerView() string {
-	logo := `
-██████╗ ██╗  ██╗██╗███████╗██╗  ██╗██╗   ██╗ █████╗ ██╗   ██╗██╗  ████████╗
-██╔══██╗██║  ██║██║██╔════╝██║  ██║██║   ██║██╔══██╗██║   ██║██║  ╚══██╔══╝
-██████╔╝███████║██║███████╗███████║██║   ██║███████║██║   ██║██║     ██║
-██╔═══╝ ██╔══██║██║╚════██║██╔══██║╚██╗ ██╔╝██╔══██║██║   ██║██║     ██║
-██║     ██║  ██║██║███████║██║  ██║ ╚████╔╝ ██║  ██║╚██████╔╝███████╗██║
-╚═╝     ╚═╝  ╚═╝╚═╝╚══════╝╚═╝  ╚═╝  ╚═══╝  ╚═╝  ╚═╝ ╚═════╝ ╚══════╝╚═╝
-`
-	return LogoStyle.Render(logo)
-}
-
-func (m model) footerView() string {
 	if m.state == stateLogin {
-		return StatusBarStyle.Render("Tab to switch • Enter to submit • Ctrl+C to quit")
-	} else if m.state == stateMenu {
-		return StatusBarStyle.Render("Use ↑/↓ to navigate • Enter to select • q to quit")
-	} else if m.state == stateViewingOutput {
-		return StatusBarStyle.Render("Esc to return to menu • q to quit")
+		btn := "[ Login ]"
+		if m.focusIndex == 2 {
+			btn = lipgloss.NewStyle().Foreground(ColorBg).Background(ColorLime).Bold(true).Render("[ LOGIN ]")
+		}
+
+		rightView = FormContainerStyle.Render(
+			TitleStyle.Render("OpenTUI Access Gateway") + "\n" +
+				lipgloss.NewStyle().Foreground(ColorDim).Render("Enter your credentials to continue") + "\n\n" +
+
+				InputPromptStyle.Render("USERNAME") + "\n" +
+				m.usernameInput.View() + "\n" +
+
+				InputPromptStyle.Render("PASSWORD") + "\n" +
+				m.passwordInput.View() + "\n\n" +
+
+				btn + "\n" +
+				lipgloss.NewStyle().Foreground(ColorError).Render(m.loginError),
+		)
+	} else if m.state == stateDashboard {
+		menu := TitleStyle.Render("Operations Menu") + "\n\n"
+		for i, item := range m.menuItems {
+			if m.cursor == i {
+				menu += SelectedMenuStyle.Render("> "+item.title) + "\n"
+			} else {
+				menu += UnselectedMenuStyle.Render(item.title) + "\n"
+			}
+		}
+
+		output := ""
+		if m.output != "" {
+			output = "\n\n" + lipgloss.NewStyle().Foreground(ColorDim).Render("--- OUTPUT ---") + "\n" +
+				lipgloss.NewStyle().Foreground(ColorLime).Render(m.viewport.View())
+		}
+
+		rightView = FormContainerStyle.Render(menu + output)
+
+	} else if m.state == stateScannerInput {
+		rightView = FormContainerStyle.Render(
+			TitleStyle.Render("Intelligence Scanner") + "\n" +
+				lipgloss.NewStyle().Foreground(ColorDim).Render("Enter target URL for deep analysis") + "\n\n" +
+
+				InputPromptStyle.Render("TARGET URL") + "\n" +
+				m.urlInput.View() + "\n\n" +
+				lipgloss.NewStyle().Foreground(ColorDim).Render("[Enter] Scan  [Esc] Back"),
+		)
+	} else if m.state == stateScannerRunning {
+		rightView = FormContainerStyle.Render(
+			"\n\n" + m.spinner.View() + " " + lipgloss.NewStyle().Foreground(ColorLime).Render(m.scanProgress),
+		)
+	} else if m.state == stateScannerResults {
+		tree := ""
+		for _, l := range m.scanTree {
+			tree += l + "\n"
+		}
+
+		vColor := NodeSafe
+		if m.scanResult == "PHISHING" {
+			vColor = NodeHighRisk
+		}
+
+		rightView = FormContainerStyle.Render(
+			TitleStyle.Render("Scan Results") + "\n\n" +
+				tree + "\n\n" +
+				"VERDICT: " + vColor.Bold(true).Render(m.scanResult) + "\n\n" +
+				lipgloss.NewStyle().Foreground(ColorDim).Render("[Esc] Dashboard"),
+		)
 	}
-	return ""
+
+	// 3. Combine with JoinHorizontal
+	return AppStyle.Render(
+		lipgloss.JoinHorizontal(lipgloss.Top, leftView, rightView) + "\n" +
+			StatusStyle.Render("Ctrl+C to Quit"),
+	)
+}
+
+// --- Logic ---
+
+type TriggerScanMsg struct {
+	Status string
+	Cmd    tea.Cmd
+}
+
+type ScanResultMsg struct {
+	Verdict string
+	Tree    []string
+}
+
+func runScannerSteps(url string) tea.Cmd {
+	return func() tea.Msg {
+		time.Sleep(1 * time.Second)
+		return TriggerScanMsg{
+			Status: "Stealth Mode: Randomizing...",
+			Cmd: func() tea.Msg {
+				time.Sleep(1 * time.Second)
+				return TriggerScanMsg{
+					Status: "Capturing DOM...",
+					Cmd: func() tea.Msg {
+						time.Sleep(2 * time.Second)
+
+						// Logic
+						lowerURL := strings.ToLower(url)
+						isPhishing := false
+						if strings.Contains(lowerURL, "amazon") ||
+							strings.Contains(lowerURL, "github.io") ||
+							strings.Contains(lowerURL, "login") {
+							isPhishing = true
+						}
+
+						var tree []string
+						var verdict string
+
+						if isPhishing {
+							verdict = "PHISHING"
+							tree = []string{
+								NodeNormal.Render("◉ " + url),
+								"├─ " + NodeHighRisk.Render("IP: 44.208.23.11 (Risk: CRITICAL)"),
+								"├─ " + NodeNormal.Render("Hosting: GitHub Pages"),
+								"├─ DOM Elements",
+								"│  ├─ " + NodeHighRisk.Render("Input[Password] (Harvesting)"),
+								"│  └─ " + NodeSafe.Render("Logo (Google)"),
+								"└─ " + NodeHighRisk.Render("SSL: DV (Abused)"),
+							}
+						} else {
+							verdict = "SAFE"
+							tree = []string{
+								NodeNormal.Render("◉ " + url),
+								"├─ " + NodeSafe.Render("IP: 142.250.190.46"),
+								"├─ " + NodeNormal.Render("Hosting: Google"),
+								"├─ DOM Elements",
+								"│  ├─ " + NodeSafe.Render("Input[Search]"),
+								"│  └─ " + NodeSafe.Render("Logo"),
+								"└─ " + NodeSafe.Render("SSL: Valid"),
+							}
+						}
+
+						return ScanResultMsg{
+							Verdict: verdict,
+							Tree:    tree,
+						}
+					},
+				}
+			},
+		}
+	}
 }
 
 func main() {
 	p := tea.NewProgram(initialModel(), tea.WithAltScreen())
 	if _, err := p.Run(); err != nil {
-		fmt.Printf("Fatal Error: %v", err) // Changed error message
+		fmt.Println("Error:", err)
 		os.Exit(1)
 	}
 }

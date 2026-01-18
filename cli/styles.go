@@ -3,64 +3,73 @@ package main
 import "github.com/charmbracelet/lipgloss"
 
 var (
-	// -- Colors --
-	// Industrial Palette: Dark Slate, Neon Green, Muted Steel
-	ColorBg        = lipgloss.Color("#1a1b26") // Deep Night
-	ColorFg        = lipgloss.Color("#a9b1d6") // Muted Text
-	ColorPrimary   = lipgloss.Color("#00e1b6") // PhishVault Neon Green (Core Brand)
-	ColorSecondary = lipgloss.Color("#7aa2f7") // Cyber Blue
-	ColorAccent    = lipgloss.Color("#e0af68") // Warning Gold
-	ColorBorder    = lipgloss.Color("#414868") // Steel Border
-	ColorError     = lipgloss.Color("#f7768e") // Alert Red
+	// -- OpenTUI Gateway Palette --
+	// Pure Black & Lime Green
+	ColorBg    = lipgloss.Color("#000000")
+	ColorFg    = lipgloss.Color("#EEEEEE")
+	ColorLime  = lipgloss.Color("#CCFF00") // Electric Lime
+	ColorDim   = lipgloss.Color("#444444") // Placeholder
+	ColorError = lipgloss.Color("#FF3333")
 
 	// -- Core Layout --
 	AppStyle = lipgloss.NewStyle().
-			Margin(1, 2).
-			BorderForeground(ColorBorder)
-
-	// -- Components --
-
-	LogoStyle = lipgloss.NewStyle().
-			Foreground(ColorPrimary).
-			Bold(true).
-			MarginBottom(1).
-			Align(lipgloss.Center)
-
-	// Login Box
-	LoginBoxStyle = lipgloss.NewStyle().
-			Border(lipgloss.ThickBorder()).
-			BorderForeground(ColorSecondary).
-			Padding(1, 4).
-			Align(lipgloss.Center)
-
-	// Menu
-	MenuHeaderStyle = lipgloss.NewStyle().
-			Foreground(ColorSecondary).
-			Bold(true).
-			BorderStyle(lipgloss.NormalBorder()).
-			BorderBottom(true).
-			BorderForeground(ColorBorder).
-			MarginBottom(1)
-
-	MenuItemStyle = lipgloss.NewStyle().
-			PaddingLeft(2).
+			Margin(2, 4).
 			Foreground(ColorFg)
 
-	MenuSelectedStyle = lipgloss.NewStyle().
-				PaddingLeft(1).
-				Foreground(ColorPrimary).
-				Bold(true).
-				SetString("▒▓ ") // Industrial cursor
+	// -- Split Layout Components --
 
-	// Output Output Panel
-	OutputPanelStyle = lipgloss.NewStyle().
-				Border(lipgloss.RoundedBorder()).
-				BorderForeground(ColorBorder).
-				Padding(0, 1).
+	// Left Side: The Graphic
+	LogoContainerStyle = lipgloss.NewStyle().
+				Width(60).
+				PaddingRight(4).
+				Border(lipgloss.NormalBorder(), false, true, false, false). // Right border separator
+				BorderForeground(ColorDim).
+				Align(lipgloss.Center)
+
+	LogoTextStyle = lipgloss.NewStyle().
+			Foreground(ColorFg).
+			Bold(true)
+
+	// Right Side: The Form
+	FormContainerStyle = lipgloss.NewStyle().
+				PaddingLeft(4).
+				Width(60).
+				Align(lipgloss.Left)
+
+	TitleStyle = lipgloss.NewStyle().
+			Foreground(ColorFg).
+			Bold(true).
+			MarginBottom(1)
+
+	// Inputs
+	InputStyle = lipgloss.NewStyle().
+			Foreground(ColorLime).
+			Border(lipgloss.NormalBorder(), false, false, true, false). // Bottom border only
+			BorderForeground(ColorDim).
+			Padding(1, 0)
+
+	InputPromptStyle = lipgloss.NewStyle().
+				Foreground(ColorDim).
 				MarginTop(1)
 
-	// Footer table or status bar
-	StatusBarStyle = lipgloss.NewStyle().
-			Foreground(ColorBorder).
+	// Menu / List
+	SelectedMenuStyle = lipgloss.NewStyle().
+				Foreground(ColorBg).
+				Background(ColorLime).
+				Bold(true).
+				Padding(0, 1)
+
+	UnselectedMenuStyle = lipgloss.NewStyle().
+				Foreground(ColorFg).
+				Padding(0, 1)
+
+	// Status
+	StatusStyle = lipgloss.NewStyle().
+			Foreground(ColorDim).
 			MarginTop(2)
+
+	// Tree
+	NodeHighRisk = lipgloss.NewStyle().Foreground(ColorError)
+	NodeSafe     = lipgloss.NewStyle().Foreground(ColorLime)
+	NodeNormal   = lipgloss.NewStyle().Foreground(ColorFg)
 )

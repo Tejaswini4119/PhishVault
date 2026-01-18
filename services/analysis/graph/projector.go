@@ -1,7 +1,8 @@
 package graph
 
 import (
-	"fmt"
+	"log/slog"
+	"os"
 	"strings"
 	"sync"
 	"time"
@@ -51,17 +52,19 @@ type GraphDatabase interface {
 
 // --- Console Adapter (Default) ---
 
+// --- Console Adapter (Default) ---
+
 type ConsoleGraphAdapter struct{}
 
 func (c *ConsoleGraphAdapter) ExecuteBatch(nodes []GraphNode, edges []GraphEdge) error {
 	if len(nodes) == 0 && len(edges) == 0 {
 		return nil
 	}
-	fmt.Printf("--- [GraphDB] Executing Batch: %d Nodes, %d Edges ---\n", len(nodes), len(edges))
+	slog.Info("executing graph batch", "node_count", len(nodes), "edge_count", len(edges))
 	// Log sample query for debug
 	if len(nodes) > 0 {
 		n := nodes[0]
-		fmt.Printf("    Sample Node: MERGE (n:%s {id: '%s'}) ...\n", n.Label, n.ID)
+		slog.Debug("sample node merge", "label", n.Label, "id", n.ID)
 	}
 	return nil
 }
@@ -79,6 +82,7 @@ type Projector struct {
 	flushInterval time.Duration
 	db            GraphDatabase // Injected dependency
 	stopChan      chan struct{}
+	logger        *slog.Logger
 }
 
 func NewProjector(batchSize int, db GraphDatabase) *Projector {
@@ -92,6 +96,7 @@ func NewProjector(batchSize int, db GraphDatabase) *Projector {
 		edgeBuffer:    make([]GraphEdge, 0, batchSize),
 		db:            db,
 		stopChan:      make(chan struct{}),
+		logger:        slog.New(slog.NewJSONHandler(os.Stdout, nil)),
 	}
 	// Background flush worker
 	go p.flushLoop()
@@ -236,7 +241,7 @@ func (p *Projector) flush() {
 	// Delegate to the injected database adapter
 	err := p.db.ExecuteBatch(p.nodeBuffer, p.edgeBuffer)
 	if err != nil {
-		fmt.Printf("Error flushing graph batch: %v\n", err)
+		p.logger.Error("failed to flush graph batch", "error", err)
 	}
 
 	// Clear buffers (re-slice to 0, keep capacity)

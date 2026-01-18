@@ -163,9 +163,32 @@ impl App {
 }
 
 async fn run_docker_async(logs: Arc<Mutex<Vec<String>>>, args: Vec<String>) {
+    // Robust Path Finding: Find where 'deploy/docker-compose.yml' actually is
+    // This handles running from 'cli-rust', 'target/debug', or root.
+    let mut current_dir = std::env::current_dir().unwrap_or_else(|_| std::path::PathBuf::from("."));
+    let mut project_root = current_dir.clone();
+    let mut found = false;
+    
+    // Traverse up to 5 levels to find 'deploy' folder
+    for _ in 0..5 {
+        if project_root.join("deploy").join("docker-compose.yml").exists() {
+            found = true;
+            break;
+        }
+        if !project_root.pop() { break; }
+    }
+    
+    // Fallback if not found: Assume ../ from default behavior
+    if !found {
+        logs.lock().unwrap().push("[WARN] Could not auto-detect project root. using default '..' path.".to_string());
+        project_root = std::path::PathBuf::from(".."); 
+    } else {
+         logs.lock().unwrap().push(format!("[DEBUG] Project Root Found: {:?}", project_root));
+    }
+
     let mut child = Command::new("docker")
         .args(&args)
-        .current_dir("..")
+        .current_dir(project_root) // Use the robustly found root
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
         .spawn();
@@ -193,7 +216,6 @@ async fn run_docker_async(logs: Arc<Mutex<Vec<String>>>, args: Vec<String>) {
                  });
              }
              
-             // Wait for completion (optional, but good for cleanup)
              let _ = child.wait().await;
              logs.lock().unwrap().push(format!("[DOCKER] Command Finished: {:?}", args));
         }

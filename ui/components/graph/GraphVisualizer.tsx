@@ -151,7 +151,7 @@ export default function GraphVisualizer() {
                         value={query}
                         onChange={(e) => setQuery(e.target.value)}
                         className="w-full bg-slate-900 border border-slate-700 rounded-md pl-10 pr-16 py-2 text-sm font-mono text-slate-200 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all placeholder:text-slate-600"
-                        placeholder="Enter Cypher Query..."
+                        placeholder="Enter Neo4j Cypher Query..."
                     />
                     <kbd className="absolute right-3 top-2.5 text-xs text-slate-600 font-mono border border-slate-700 rounded px-1 hidden sm:inline-block">Enter</kbd>
                 </div>

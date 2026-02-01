@@ -1,14 +1,18 @@
 package main
 
 import (
+	"context"
 	"crypto/sha256"
 	"database/sql"
 	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
+	"net/url"
 	"os"
+	"os/signal"
 	"strings"
+	"syscall"
 	"time"
 
 	"github.com/PhishVault/PhishVault-2/core/domain"
@@ -59,6 +63,13 @@ func submitHandler(w http.ResponseWriter, r *http.Request) {
 
 	if req.URL == "" {
 		http.Error(w, "URL is required", http.StatusBadRequest)
+		return
+	}
+
+	// Validate URL
+	parsedURL, err := url.ParseRequestURI(req.URL)
+	if err != nil || (parsedURL.Scheme != "http" && parsedURL.Scheme != "https") {
+		http.Error(w, "Invalid URL: Must be a valid HTTP/HTTPS URL", http.StatusBadRequest)
 		return
 	}
 
@@ -358,6 +369,7 @@ func main() {
 		defer producer.Close()
 	}
 
+	// 4. HTTP Server Setup with Graceful Shutdown
 	mux := http.NewServeMux()
 	mux.HandleFunc("/submit", submitHandler)
 	mux.HandleFunc("/submit-email", submitEmailHandler)
@@ -365,9 +377,68 @@ func main() {
 	mux.HandleFunc("/stats", statsHandler)             // STATS API
 	mux.HandleFunc("/campaigns", listCampaignsHandler) // CAMPAIGNS API
 	mux.HandleFunc("/scans/", scanDetailHandler)       // DETAIL API
+	mux.HandleFunc("/health", healthHandler)           // DOCKER HEALTHCHECK
 
-	log.Println("Ingestion API server listening on :8080")
-	if err := http.ListenAndServe(":8080", enableCors(mux)); err != nil {
-		log.Fatalf("Server failed: %v", err)
+	srv := &http.Server{
+		Addr:    ":8080",
+		Handler: enableCors(mux),
 	}
+
+	// Channel to listen for errors coming from the listener.
+	serverErrors := make(chan error, 1)
+
+	// Start the server
+	go func() {
+		log.Println("Ingestion API server listening on :8080")
+		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			serverErrors <- err
+		}
+	}()
+
+	// Channel to listen for interrupt or terminate signal from the OS.
+	shutdown := make(chan os.Signal, 1)
+	signal.Notify(shutdown, os.Interrupt, syscall.SIGTERM)
+
+	// Blocking select
+	select {
+	case err := <-serverErrors:
+		log.Fatalf("Error starting server: %v", err)
+
+	case <-shutdown:
+		log.Println("Main: Start shutdown")
+
+		// Give outstanding requests a deadline for completion.
+		const timeout = 5 * time.Second
+		ctx, cancel := context.WithTimeout(context.Background(), timeout)
+		defer cancel()
+
+		// Asking listener to shutdown and shed load.
+		if err := srv.Shutdown(ctx); err != nil {
+			log.Printf("Main: Graceful shutdown did not complete in %v : %v", timeout, err)
+			if err := srv.Close(); err != nil {
+				log.Fatalf("Main: Could not stop http server: %v", err)
+			}
+		}
+	}
+
+	log.Println("Main: Server stopped")
+
+	// Cleanup Resources
+	if db != nil {
+		db.Close()
+		log.Println("Main: DB Connection Closed")
+	}
+	if neo4jClient != nil {
+		neo4jClient.Close()
+		log.Println("Main: Neo4j Connection Closed")
+	}
+	if producer != nil {
+		producer.Close()
+		log.Println("Main: RabbitMQ Connection Closed")
+	}
+}
+
+func healthHandler(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte("OK"))
 }

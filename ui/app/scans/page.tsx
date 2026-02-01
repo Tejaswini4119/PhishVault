@@ -9,6 +9,7 @@ interface Scan {
     status: string;
     timestamp: string;
     verdict: string;
+    risk_score: number;
 }
 
 export default function ScansPage() {
@@ -52,6 +53,7 @@ export default function ScansPage() {
                             <tr>
                                 <th className="px-6 py-4">Scan ID</th>
                                 <th className="px-6 py-4">Target / Subject</th>
+                                <th className="px-6 py-4">Risk Score</th>
                                 <th className="px-6 py-4">Ingestion</th>
                                 <th className="px-6 py-4">Timestamp</th>
                                 <th className="px-6 py-4">Verdict</th>
@@ -70,6 +72,17 @@ export default function ScansPage() {
                                         <td className="px-6 py-4">
                                             <div className="text-white font-medium truncate max-w-md" title={scan.target_url}>
                                                 {scan.target_url}
+                                            </div>
+                                        </td>
+                                        <td className="px-6 py-4">
+                                            <div className="flex items-center gap-2">
+                                                <span className="text-sm font-bold text-white">{scan.risk_score}</span>
+                                                <div className="w-16 h-1.5 bg-slate-800 rounded-full overflow-hidden">
+                                                    <div
+                                                        className={`h-full rounded-full ${scan.risk_score > 70 ? 'bg-red-500' : scan.risk_score > 40 ? 'bg-yellow-500' : 'bg-green-500'}`}
+                                                        style={{ width: `${scan.risk_score}%` }}
+                                                    />
+                                                </div>
                                             </div>
                                         </td>
                                         <td className="px-6 py-4">

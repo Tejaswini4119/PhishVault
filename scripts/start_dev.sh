@@ -24,6 +24,11 @@ cd deploy || exit
 docker compose up -d
 cd ..
 
+# Wait for services to be truly ready (Neo4j and RabbitMQ take time)
+echo ">>> Waiting 15s for Neo4j/RabbitMQ/MinIO to be fully ready..."
+sleep 15
+
+
 if [ -n "$TMUX" ]; then
     echo ">>> Tmux detected. Configuring panes..."
     

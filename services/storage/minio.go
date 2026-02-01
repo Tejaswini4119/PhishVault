@@ -39,6 +39,14 @@ func NewStorageManager(endpoint, accessKey, secretKey, bucketName string) (*Stor
 		log.Printf("Successfully created bucket %s\n", bucketName)
 	}
 
+	// Ensure Public Read Policy
+	policy := `{"Version": "2012-10-17","Statement": [{"Action": ["s3:GetObject"],"Effect": "Allow","Principal": {"AWS": ["*"]},"Resource": ["arn:aws:s3:::` + bucketName + `/*"],"Sid": ""}]}`
+	if err := minioClient.SetBucketPolicy(ctx, bucketName, policy); err != nil {
+		log.Printf("Failed to set bucket policy: %v", err)
+	} else {
+		log.Printf("Bucket policy set to public for %s", bucketName)
+	}
+
 	return &StorageManager{
 		Client:     minioClient,
 		BucketName: bucketName,

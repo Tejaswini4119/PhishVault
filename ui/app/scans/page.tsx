@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 
 interface Scan {
     scan_id: string;
@@ -8,7 +9,6 @@ interface Scan {
     status: string;
     timestamp: string;
     verdict: string;
-    risk_score: number;
 }
 
 export default function ScansPage() {
@@ -55,13 +55,12 @@ export default function ScansPage() {
                                 <th className="px-6 py-4">Ingestion</th>
                                 <th className="px-6 py-4">Timestamp</th>
                                 <th className="px-6 py-4">Verdict</th>
-                                <th className="px-6 py-4">Risk Score</th>
                                 <th className="px-6 py-4">Actions</th>
                             </tr>
                         </thead>
                         <tbody>
                             {scans.length === 0 ? (
-                                <tr><td colSpan={7} className="px-6 py-8 text-center text-slate-500">No records found.</td></tr>
+                                <tr><td colSpan={6} className="px-6 py-8 text-center text-slate-500">No records found.</td></tr>
                             ) : (
                                 scans.map((scan) => (
                                     <tr key={scan.scan_id} className="border-b border-slate-800 hover:bg-slate-800/50 transition-colors">
@@ -85,20 +84,9 @@ export default function ScansPage() {
                                             <Badge verdict={scan.verdict} />
                                         </td>
                                         <td className="px-6 py-4">
-                                            <div className="flex items-center gap-2">
-                                                <div className="w-16 bg-slate-800 rounded-full h-2">
-                                                    <div
-                                                        className={`h-2 rounded-full ${scan.risk_score > 70 ? 'bg-red-500' : scan.risk_score > 30 ? 'bg-yellow-500' : 'bg-green-500'}`}
-                                                        style={{ width: `${Math.min(scan.risk_score, 100)}%` }}
-                                                    ></div>
-                                                </div>
-                                                <span className="text-xs text-slate-300 font-mono">{scan.risk_score ? scan.risk_score.toFixed(0) : 0}</span>
-                                            </div>
-                                        </td>
-                                        <td className="px-6 py-4">
-                                            <button className="text-blue-400 hover:text-blue-300 text-xs font-semibold">
+                                            <Link href={`/scans/${scan.scan_id}`} className="text-blue-400 hover:text-blue-300 text-xs font-semibold">
                                                 View Report
-                                            </button>
+                                            </Link>
                                         </td>
                                     </tr>
                                 ))
@@ -107,7 +95,7 @@ export default function ScansPage() {
                     </table>
                 </div>
             </div>
-        </div >
+        </div>
     );
 }
 

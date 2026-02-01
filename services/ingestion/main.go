@@ -8,6 +8,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/PhishVault/PhishVault-2/core/domain"
@@ -257,6 +258,64 @@ func publishTask(w http.ResponseWriter, task domain.SAL, scanID string) {
 	}
 }
 
+func scanDetailHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	id := strings.TrimPrefix(r.URL.Path, "/scans/")
+	if id == "" {
+		http.Error(w, "Missing ID", http.StatusBadRequest)
+		return
+	}
+
+	if db == nil {
+		http.Error(w, "DB Disconnected", http.StatusServiceUnavailable)
+		return
+	}
+
+	// Fetch Query
+	var url, verdict string
+	var riskScore float64
+	var timestamp time.Time
+
+	err := db.QueryRow("SELECT url, verdict, COALESCE(risk_score, 0), timestamp FROM scans WHERE scan_id = $1", id).Scan(&url, &verdict, &riskScore, &timestamp)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			http.Error(w, "Not Found", http.StatusNotFound)
+		} else {
+			log.Printf("DB Error: %v", err)
+			http.Error(w, "Internal Error", http.StatusInternalServerError)
+		}
+		return
+	}
+
+	// Fetch Details
+	var finalURL string
+	var status int
+	_ = db.QueryRow("SELECT final_url, response_status FROM scan_details WHERE scan_id = $1", id).Scan(&finalURL, &status)
+
+	// Fetch Screenshot Path
+	var screenshotPath string
+	_ = db.QueryRow("SELECT path FROM artifacts WHERE scan_id = $1 AND artifact_type = 'screenshot'", id).Scan(&screenshotPath)
+
+	resp := map[string]interface{}{
+		"scan_id":         id,
+		"url":             url,
+		"verdict":         verdict,
+		"risk_score":      riskScore,
+		"timestamp":       timestamp,
+		"final_url":       finalURL,
+		"status_code":     status,
+		"screenshot_path": screenshotPath, // UI can construct MinIO URL
+		"screenshot_url":  "http://localhost:9000/phishvault-artifacts/" + screenshotPath,
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(resp)
+}
+
 func main() {
 	var err error
 
@@ -305,6 +364,7 @@ func main() {
 	mux.HandleFunc("/scans", listScansHandler)         // READ API
 	mux.HandleFunc("/stats", statsHandler)             // STATS API
 	mux.HandleFunc("/campaigns", listCampaignsHandler) // CAMPAIGNS API
+	mux.HandleFunc("/scans/", scanDetailHandler)       // DETAIL API
 
 	log.Println("Ingestion API server listening on :8080")
 	if err := http.ListenAndServe(":8080", enableCors(mux)); err != nil {

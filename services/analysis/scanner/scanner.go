@@ -35,11 +35,21 @@ func NewScanner() (*Scanner, error) {
 }
 
 func (s *Scanner) Scan(ctx context.Context, targetURL string) (domain.Artifacts, error) {
-	page, err := s.browser.NewPage()
+	// Use a new context for better isolation and cleanup guarantees
+	// We can add User-Agent randomization here later if needed
+	browserContext, err := s.browser.NewContext(playwright.BrowserNewContextOptions{
+		UserAgent: playwright.String("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"),
+	})
+	if err != nil {
+		return domain.Artifacts{}, fmt.Errorf("could not create browser context: %v", err)
+	}
+	defer browserContext.Close()
+
+	page, err := browserContext.NewPage()
 	if err != nil {
 		return domain.Artifacts{}, fmt.Errorf("could not create page: %v", err)
 	}
-	defer page.Close()
+	// page.Close() is handled by browserContext.Close()
 
 	// Timeout context
 	// Playwright has its own timeout options, but we can respect context cancellation too.

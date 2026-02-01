@@ -142,7 +142,7 @@ func listScansHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	rows, err := db.Query("SELECT scan_id, url, verdict, timestamp FROM scans ORDER BY timestamp DESC LIMIT 50")
+	rows, err := db.Query("SELECT scan_id, url, verdict, risk_score, timestamp FROM scans ORDER BY timestamp DESC LIMIT 50")
 	if err != nil {
 		log.Printf("Query error: %v", err)
 		http.Error(w, "Database Error", http.StatusInternalServerError)
@@ -153,16 +153,30 @@ func listScansHandler(w http.ResponseWriter, r *http.Request) {
 	var scans []map[string]interface{}
 	for rows.Next() {
 		var id, url, verdict string
+		var riskScore float64
 		var createdAt time.Time
-		if err := rows.Scan(&id, &url, &verdict, &createdAt); err != nil {
+
+		// Use sql.NullFloat64 for risk_score as it might be null for pending scans
+		var riskScoreNull sql.NullFloat64
+
+		if err := rows.Scan(&id, &url, &verdict, &riskScoreNull, &createdAt); err != nil {
+			log.Printf("Scan parsing error: %v", err)
 			continue
 		}
+
+		if riskScoreNull.Valid {
+			riskScore = riskScoreNull.Float64
+		} else {
+			riskScore = 0.0
+		}
+
 		scans = append(scans, map[string]interface{}{
 			"scan_id":    id,
 			"target_url": url,
-			"status":     verdict, // This handles "Verdict"
+			"status":     verdict,
+			"verdict":    verdict,
+			"risk_score": riskScore,
 			"timestamp":  createdAt,
-			"verdict":    verdict, // Duplicate for UI
 		})
 	}
 

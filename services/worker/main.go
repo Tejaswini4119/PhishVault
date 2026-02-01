@@ -90,44 +90,56 @@ func main() {
 
 	go func() {
 		for d := range msgs {
-			log.Printf("Received a task: %s", d.Body)
+			// Process each message in a safe wrapper to prevent worker crash
+			func(delivery amqp091.Delivery) {
+				defer func() {
+					if r := recover(); r != nil {
+						log.Printf("CRITICAL: Worker panic recovered for scan: %v", r)
+						// Optionally: Nack the message or update DB with "FAILED" status
+					}
+				}()
 
-			var task domain.SAL
-			if err := json.Unmarshal(d.Body, &task); err != nil {
-				log.Printf("Error decoding task: %v", err)
-				continue
-			}
+				log.Printf("Received a task: %s", delivery.Body)
 
-			// 3.5 Run Scanner (Headless Browser)
-			if scanEngine != nil {
-				log.Printf("Scanning URL: %s", task.URL)
-				artifacts, err := scanEngine.Scan(context.Background(), task.URL)
-				if err != nil {
-					log.Printf("Scanner failed: %v", err)
-					// Continue with empty artifacts?
-				} else {
-					task.Artifacts = artifacts
-					log.Printf("Scan successful. Content Size: %d", len(artifacts.RawContent))
+				var task domain.SAL
+				if err := json.Unmarshal(delivery.Body, &task); err != nil {
+					log.Printf("Error decoding task: %v", err)
+					return // Skip malformed tasks
 				}
-			}
 
-			// 4. Process Task (Real ETE Logic)
-			result, err := orchestrator.ProcessArtifact(context.Background(), task)
-			if err != nil {
-				log.Printf("Analysis failed: %v", err)
-				continue
-			}
+				// 3.5 Run Scanner (Headless Browser)
+				if scanEngine != nil {
+					log.Printf("TxID: %s | Scanning URL: %s", task.ScanID, task.URL)
+					artifacts, err := scanEngine.Scan(context.Background(), task.URL)
+					if err != nil {
+						log.Printf("TxID: %s | Scanner failed: %v", task.ScanID, err)
+						// We proceed even if scan fails, to let Orchestrator decide (e.g. valid empty result)
+						// or maybe Orchestrator analyzes the error.
+						// For now, we update artifacts with error info if possible or just log.
+					} else {
+						task.Artifacts = artifacts
+						log.Printf("TxID: %s | Scan successful. Content Size: %d", task.ScanID, len(artifacts.RawContent))
+					}
+				}
 
-			// 5. Update Database with Result
-			// Note: Orchestrator sets Verdict to MALICIOUS/SAFE
-			_, err = db.Exec("UPDATE scans SET verdict = $1, risk_score = $2 WHERE scan_id = $3",
-				result.Verdict, result.RiskScore, result.ScanID)
+				// 4. Process Task (Real ETE Logic)
+				// Orchestrator handles AI, Graph, Verdict
+				result, err := orchestrator.ProcessArtifact(context.Background(), task)
+				if err != nil {
+					log.Printf("TxID: %s | Analysis failed: %v", task.ScanID, err)
+					return
+				}
 
-			if err != nil {
-				log.Printf("Failed to update DB: %v", err)
-			} else {
-				log.Printf("Scan %s completed. Verdict: %s", result.ScanID, result.Verdict)
-			}
+				// 5. Update Database with Result
+				_, err = db.Exec("UPDATE scans SET verdict = $1, risk_score = $2 WHERE scan_id = $3",
+					result.Verdict, result.RiskScore, result.ScanID)
+
+				if err != nil {
+					log.Printf("TxID: %s | Failed to update DB: %v", task.ScanID, err)
+				} else {
+					log.Printf("TxID: %s | Pipeline Completed. Verdict: %s", task.ScanID, result.Verdict)
+				}
+			}(d)
 		}
 	}()
 

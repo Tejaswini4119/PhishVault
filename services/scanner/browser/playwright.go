@@ -65,13 +65,20 @@ func (b *BrowserScanner) ScanURL(ctx context.Context, url string) (string, []byt
 	// Using a fixed one for stability in this snippet, but ideally random.
 	ua := userAgents[time.Now().UnixNano()%int64(len(userAgents))]
 
-	page, err := b.browser.NewPage(playwright.BrowserNewPageOptions{
+	// Use a new context for better isolation and cleanup guarantees
+	browserContext, err := b.browser.NewContext(playwright.BrowserNewContextOptions{
 		UserAgent: playwright.String(ua),
 	})
 	if err != nil {
+		return "", nil, fmt.Errorf("could not create browser context: %w", err)
+	}
+	defer browserContext.Close() // Critical: This closes the Page and all associated resources
+
+	page, err := browserContext.NewPage()
+	if err != nil {
 		return "", nil, fmt.Errorf("could not create page: %w", err)
 	}
-	defer page.Close()
+	// No need to defer page.Close() if we defer context.Close(), but it fits the flow.
 
 	// 2. Stealth: Inject Evasion Scripts (If Enabled)
 	if b.cfg.UseStealth {

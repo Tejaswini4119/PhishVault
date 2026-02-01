@@ -5,8 +5,15 @@ go 1.24.6
 toolchain go1.24.12
 
 require (
+	github.com/charmbracelet/bubbles v0.21.0
+	github.com/charmbracelet/bubbletea v1.3.10
+	github.com/charmbracelet/lipgloss v1.1.0
 	github.com/corona10/goimagehash v1.1.0
+	github.com/jackc/pgx/v5 v5.8.0
+	github.com/jdkato/prose/v2 v2.0.0
 	github.com/minio/minio-go/v7 v7.0.98
+	github.com/navossoc/bayesian v0.0.0-20230423142728-ab66f8feaf97
+	github.com/neo4j/neo4j-go-driver/v5 v5.28.4
 	github.com/open-policy-agent/opa v1.12.3
 	github.com/playwright-community/playwright-go v0.5200.1
 	github.com/rabbitmq/amqp091-go v1.10.0
@@ -18,10 +25,7 @@ require (
 	github.com/aymanbagabas/go-osc52/v2 v2.0.1 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
-	github.com/charmbracelet/bubbles v0.21.0 // indirect
-	github.com/charmbracelet/bubbletea v1.3.10 // indirect
 	github.com/charmbracelet/colorprofile v0.2.3-0.20250311203215-f60798e515dc // indirect
-	github.com/charmbracelet/lipgloss v1.1.0 // indirect
 	github.com/charmbracelet/x/ansi v0.10.1 // indirect
 	github.com/charmbracelet/x/cellbuf v0.0.13-0.20250311204145-2c3ea96c31dd // indirect
 	github.com/charmbracelet/x/term v0.2.1 // indirect
@@ -38,7 +42,9 @@ require (
 	github.com/gobwas/glob v0.2.3 // indirect
 	github.com/goccy/go-json v0.10.5 // indirect
 	github.com/google/uuid v1.6.0 // indirect
-	github.com/jdkato/prose/v2 v2.0.0 // indirect
+	github.com/jackc/pgpassfile v1.0.0 // indirect
+	github.com/jackc/pgservicefile v0.0.0-20240606120523-5a60cdf6a761 // indirect
+	github.com/jackc/puddle/v2 v2.2.2 // indirect
 	github.com/klauspost/compress v1.18.2 // indirect
 	github.com/klauspost/cpuid/v2 v2.2.11 // indirect
 	github.com/klauspost/crc32 v1.3.0 // indirect
@@ -61,8 +67,6 @@ require (
 	github.com/muesli/cancelreader v0.2.2 // indirect
 	github.com/muesli/termenv v0.16.0 // indirect
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
-	github.com/navossoc/bayesian v0.0.0-20230423142728-ab66f8feaf97 // indirect
-	github.com/neo4j/neo4j-go-driver/v5 v5.28.4 // indirect
 	github.com/nfnt/resize v0.0.0-20180221191011-83c6a9932646 // indirect
 	github.com/philhofer/fwd v1.2.0 // indirect
 	github.com/prometheus/client_golang v1.23.2 // indirect

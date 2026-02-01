@@ -88,3 +88,80 @@ func (c *Neo4jClient) ExecuteBatch(nodes []domain.GraphNode, edges []domain.Grap
 
 	return err
 }
+
+// GetGraphStats returns the total count of nodes and edges in the graph.
+func (c *Neo4jClient) GetGraphStats() (map[string]int, error) {
+	session := c.driver.NewSession(c.ctx, neo4j.SessionConfig{AccessMode: neo4j.AccessModeRead})
+	defer session.Close(c.ctx)
+
+	result, err := session.ExecuteRead(c.ctx, func(tx neo4j.ManagedTransaction) (interface{}, error) {
+		nodesResult, _ := tx.Run(c.ctx, "MATCH (n) RETURN count(n) as count", nil)
+		nodesRecord, _ := nodesResult.Single(c.ctx)
+		nodesCount, _ := nodesRecord.Get("count")
+
+		edgesResult, _ := tx.Run(c.ctx, "MATCH ()-[r]->() RETURN count(r) as count", nil)
+		edgesRecord, _ := edgesResult.Single(c.ctx)
+		edgesCount, _ := edgesRecord.Get("count")
+
+		campaignsResult, _ := tx.Run(c.ctx, "MATCH (n:Campaign) RETURN count(n) as count", nil)
+		campaignsRecord, _ := campaignsResult.Single(c.ctx)
+		campaignsCount, _ := campaignsRecord.Get("count")
+
+		return map[string]int{
+			"nodes":     int(nodesCount.(int64)),
+			"edges":     int(edgesCount.(int64)),
+			"campaigns": int(campaignsCount.(int64)),
+		}, nil
+	})
+
+	if err != nil {
+		return nil, err
+	}
+	return result.(map[string]int), nil
+}
+
+// GetCampaigns returns a list of identified campaigns from the graph.
+func (c *Neo4jClient) GetCampaigns() ([]map[string]interface{}, error) {
+	session := c.driver.NewSession(c.ctx, neo4j.SessionConfig{AccessMode: neo4j.AccessModeRead})
+	defer session.Close(c.ctx)
+
+	result, err := session.ExecuteRead(c.ctx, func(tx neo4j.ManagedTransaction) (interface{}, error) {
+		// Mock query for now, assuming we will have Campaign nodes later
+		// Real query would be: MATCH (c:Campaign) RETURN c.id, c.name, ...
+		// For MVP, if no campaigns exist, return empty or we can infer from clusters.
+		query := `
+			MATCH (c:Campaign) 
+			RETURN c.id as id, c.name as name, c.threat_actor as actor, c.target_sector as sector, c.risk_level as risk
+			LIMIT 50
+		`
+		result, err := tx.Run(c.ctx, query, nil)
+		if err != nil {
+			return nil, err
+		}
+
+		var campaigns []map[string]interface{}
+		for result.Next(c.ctx) {
+			rec := result.Record()
+			id, _ := rec.Get("id")
+			name, _ := rec.Get("name")
+			actor, _ := rec.Get("actor")
+			sector, _ := rec.Get("sector")
+			risk, _ := rec.Get("risk")
+
+			campaigns = append(campaigns, map[string]interface{}{
+				"id":            id,
+				"name":          name,
+				"threat_actor":  actor,
+				"target_sector": sector,
+				"risk_level":    risk,
+				"node_count":    0, // Could count connected nodes with another match
+			})
+		}
+		return campaigns, nil
+	})
+
+	if err != nil {
+		return nil, err
+	}
+	return result.([]map[string]interface{}), nil
+}

@@ -69,6 +69,7 @@ type ResponseDetails struct {
 
 // Artifacts holds references to stored files
 type Artifacts struct {
+	Screenshot     string `json:"screenshot,omitempty"`      // Base64 encoded screenshot
 	ScreenshotPath string `json:"screenshot_path,omitempty"` // Path or URL to screenshot
 	DOMPath        string `json:"dom_path,omitempty"`        // Path or URL to stored DOM
 	RawContent     string `json:"raw_content,omitempty"`     // In-memory content for immediate analysis

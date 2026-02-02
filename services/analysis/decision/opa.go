@@ -3,6 +3,7 @@ package decision
 import (
 	"context"
 	_ "embed"
+	"encoding/json"
 	"fmt"
 
 	"github.com/open-policy-agent/opa/rego"
@@ -65,11 +66,27 @@ func EvaluateVerdict(ctx context.Context, input PolicyInput) (VerdictResult, err
 		val, ok := expressions[0].Value.(map[string]interface{})
 		if ok {
 			v, _ := val["verdict"].(string)
-			r, _ := val["risk_score"].(float64) // JSON numbers are float64
-			// OPA might return encoding/json.Number
+			r := toFixedFloat(val["risk_score"])
 			return VerdictResult{Verdict: v, RiskScore: r}, nil
 		}
 	}
 
 	return VerdictResult{Verdict: verdict, RiskScore: 0}, nil
+}
+
+func toFixedFloat(v interface{}) float64 {
+	if v == nil {
+		return 0.0
+	}
+	switch i := v.(type) {
+	case float64:
+		return i
+	case int:
+		return float64(i)
+	case json.Number:
+		f, _ := i.Float64()
+		return f
+	default:
+		return 0.0
+	}
 }

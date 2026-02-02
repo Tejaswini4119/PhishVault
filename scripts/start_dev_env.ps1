@@ -20,8 +20,34 @@ if ($LASTEXITCODE -ne 0) {
 }
 Write-Host "   Infrastructure (Postgres, RabbitMQ, MinIO, Neo4j) is up." -ForegroundColor Green
 
-# Wait a moment for ports to be ready
-Start-Sleep -Seconds 5
+# Wait for Neo4j HTTP to be ready (more reliable than just port open)
+Write-Host "   Waiting for Neo4j HTTP (7474) and RabbitMQ (5672)..." -ForegroundColor Yellow
+$timeout = 60
+$sw = [System.Diagnostics.Stopwatch]::StartNew()
+
+while ($sw.Elapsed.TotalSeconds -lt $timeout) {
+    # Check RabbitMQ Port
+    $rabbitmq = Test-NetConnection -ComputerName localhost -Port 5672 -InformationLevel Quiet
+    
+    # Check Neo4j HTTP (Status 200)
+    $neo4jReady = $false
+    try {
+        $resp = Invoke-WebRequest -Uri "http://localhost:7474" -Method Head -ErrorAction SilentlyContinue
+        if ($resp.StatusCode -eq 200) { $neo4jReady = $true }
+    } catch {}
+
+    if ($rabbitmq -and $neo4jReady) {
+        Write-Host "`n   Ports are open and HTTP is responding!" -ForegroundColor Green
+        Write-Host "   Waiting 10s for internal initialization..." -ForegroundColor Cyan
+        Start-Sleep -Seconds 10
+        break
+    }
+    Write-Host "." -NoNewline -ForegroundColor Yellow
+    Start-Sleep -Seconds 2
+}
+if ($sw.Elapsed.TotalSeconds -ge $timeout) {
+    Write-Host "`n   ⚠️  Timed out waiting for services. Proceeding explicitly..." -ForegroundColor Yellow
+}
 
 # 2. Start Backend (Ingestion API)
 Write-Host "`n[2/4] Starting Backend Services..." -ForegroundColor Yellow

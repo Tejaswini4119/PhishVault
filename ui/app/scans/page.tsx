@@ -76,13 +76,20 @@ export default function ScansPage() {
                                         </td>
                                         <td className="px-6 py-4">
                                             <div className="flex items-center gap-2">
-                                                <span className="text-sm font-bold text-white">{scan.risk_score}</span>
-                                                <div className="w-16 h-1.5 bg-slate-800 rounded-full overflow-hidden">
-                                                    <div
-                                                        className={`h-full rounded-full ${scan.risk_score > 70 ? 'bg-red-500' : scan.risk_score > 40 ? 'bg-yellow-500' : 'bg-green-500'}`}
-                                                        style={{ width: `${scan.risk_score}%` }}
-                                                    />
-                                                </div>
+                                                {(() => {
+                                                    const displayScore = Math.round(scan.risk_score * 100);
+                                                    return (
+                                                        <>
+                                                            <span className="text-sm font-bold text-white">{displayScore}</span>
+                                                            <div className="w-16 h-1.5 bg-slate-800 rounded-full overflow-hidden">
+                                                                <div
+                                                                    className={`h-full rounded-full ${displayScore > 70 ? 'bg-red-500' : displayScore > 40 ? 'bg-yellow-500' : 'bg-green-500'}`}
+                                                                    style={{ width: `${displayScore}%` }}
+                                                                />
+                                                            </div>
+                                                        </>
+                                                    );
+                                                })()}
                                             </div>
                                         </td>
                                         <td className="px-6 py-4">

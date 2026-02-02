@@ -1,0 +1,79 @@
+# PhishVault-2 Joint Progress Report
+
+**Date**: 2026-02-02
+**Phase**: Phase 2 (Implementation & Intelligence)
+**Status**: Core Infrastructure Operational, Intelligence Layers in MVP.
+
+---
+
+## 👩‍💻 Developer 1: Tejaswini (Infrastructure, Storage & Ingestion)
+
+**Focus**: System Backbone, Memory, and Data Entry Points.
+
+### ✅ Completed Work
+1.  **Blob Storage Architecture (Tier 3 Storage)**
+    *   **Implementation**: Successfully deployed **MinIO** (S3-compatible) via Docker Compose.
+    *   **Integration**: Built `services/storage` package to handle artifact uploads (screenshots, DOM dumps).
+    *   **Status**: Fully operational. Worker stores evidence and generates accessible URLs.
+
+2.  **Email Ingestion Pipeline**
+    *   **API**: Implemented `/submit-email` endpoint in the Ingestion Service.
+    *   **Parsing**: Created `services/ingestion/parser` to handle MIME types, extracting Subject, From, and Body.
+    *   **Verification**: Basic SPF checks are integrated into the ingestion flow.
+
+3.  **Frontend Dashboard & UI Integration**
+    *   **UI Overhaul**: Delivered the "Ocean Blue" premium theme with glassmorphism.
+    *   **Visualization**: Integrated the Live Scan Registry and created the Report Details view.
+    *   **Risk Display**: Fixed the critical "Zero Score" bug by correcting database schema types.
+
+### ⏳ Pending / Next Steps
+*   **Deep Email Forensics**:
+    *   Implement full DKIM/DMARC cryptographic validation.
+    *   Add "Attachment Detonation" flow (extracting and scanning attachments).
+*   **Auth & Security**:
+    *   Secure the Ingestion API and UI with user authentication (currently open).
+
+---
+
+## 👨‍💻 Developer 2: Pardhu (AI, Analysis & Decision Engine)
+
+**Focus**: The "Brain" (Logic) and "Eyes" (Sensors).
+
+### ✅ Completed Work
+1.  **Verdict Decision Engine (OPA)**
+    *   **Implementation**: Integrated **Open Policy Agent (Rego)** for deterministic scoring.
+    *   **Policy Logic**: Defined rules for `VisualMatch`, `Urgency`, and `LoginForms`.
+    *   **Status**: Verified with unit tests ([opa_test.go](file:///c:/Users/Kandukoori%20Tejaswini/Desktop/PhishVault2/PhishVault/services/analysis/decision/opa_test.go)). The logic correctly calculates floating-point risk scores.
+
+2.  **Graph Projector & Origin Mapping**
+    *   **Graph Logic**: Implemented [projector.go](file:///c:/Users/Kandukoori%20Tejaswini/Desktop/PhishVault2/PhishVault/services/analysis/graph/projector.go) to map infrastructure chains (`Lure` -> `Relay` -> `Origin`).
+    *   **Neo4j Integration**: Define `HOSTED_ON` and `REDIRECTS_TO` schema.
+
+3.  **Basic Intelligence Engines (MVP)**
+    *   **Visual AI**: Implemented `dHash` (Difference Hash) for exact/near-exact image matching.
+    *   **NLP**: Implemented a Naive Bayesian classifier for basic text phishing detection.
+
+### ⏳ Pending / Next Steps
+*   **Stealth Browser Upgrade**:
+    *   Current Scanner is standard Playwright.
+    *   **Action**: Implement WebGL spoofing, Canvas noise, and `navigator.webdriver` removal to bypass advanced phishing kits.
+*   **Advanced AI Models**:
+    *   Upgrade Visual AI to **Siamese Neural Networks** (ResNet-50) for logo/brand detection.
+    *   Upgrade NLP to **Transformers (BERT)** for sentiment analysis.
+*   **Temporal Reconstruction**:
+    *   Build the "Time-Travel" engine to track how a URL's content changes over 24-48 hours.
+
+---
+
+## 🤝 Internal System Status (Joint Achievements)
+
+| Component | Status | Owner | Notes |
+| :--- | :--- | :--- | :--- |
+| **Microservices Base** | 🟢 Stable | Joint | Docker Compose orchestrates all 6 services perfectly. |
+| **Message Bus** | 🟢 Stable | Shared | RabbitMQ handles high-throughput job distribution. |
+| **Database Schema** | 🟢 Stable | Tejaswini | Self-healing schema implemented for Postgres. |
+| **Analysis Pipeline** | 🟡 MVP | Pardhu | Functional, but AI models need "Industrial Grade" upgrade. |
+
+### Immediate Priority
+1.  **Pardhu**: Upgrade the Scanner to be "Stealthy" (Priority 1 for Evasion detection).
+2.  **Tejaswini**: Implement Auth/Login for the Dashboard (Priority 1 for Production Readiness).

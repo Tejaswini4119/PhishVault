@@ -67,6 +67,8 @@ func EvaluateVerdict(ctx context.Context, input PolicyInput) (VerdictResult, err
 		if ok {
 			v, _ := val["verdict"].(string)
 			r := toFixedFloat(val["risk_score"])
+			// Log checking
+			// fmt.Printf("OPA Result: Verdict=%s, Risk=%f\n", v, r)
 			return VerdictResult{Verdict: v, RiskScore: r}, nil
 		}
 	}

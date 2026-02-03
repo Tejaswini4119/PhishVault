@@ -1,0 +1,57 @@
+# Authentication & Security Implementation Plan
+
+## Goal Description
+Secure the Ingestion API and UI by implementing user authentication.
+Currently, the API is open to anyone. We will add JWT-based authentication to the Go backend and a Login page to the Next.js frontend.
+
+## Proposed Changes
+
+### Backend (Go) - `services/ingestion`
+
+#### [MODIFY] [main.go](file:///c:/Users/Kandukoori%20Tejaswini/Desktop/PhishVault2/PhishVault/services/ingestion/main.go)
+-   Initialize `users` table in [main()](file:///c:/Users/Kandukoori%20Tejaswini/Desktop/PhishVault2/PhishVault/services/ingestion/main.go#330-440) database connection block.
+-   Add `AuthMiddleware` function to validate JWT tokens.
+-   Wrap protected routes (`/submit`, `/scans`, etc.) with `AuthMiddleware`.
+-   Add `/auth/login` and `/auth/register` endpoints.
+
+#### [NEW] [auth.go](file:///c:/Users/Kandukoori%20Tejaswini/Desktop/PhishVault2/PhishVault/services/ingestion/auth.go)
+-   Define `User` struct.
+-   Implement `RegisterHandler`: hashes password using `bcrypt`, saves user to DB.
+-   Implement `LoginHandler`: verifies password, generates JWT token.
+-   Implement `GenerateToken` and `ValidateToken` helper functions.
+
+### Frontend (Next.js) - `ui`
+
+#### [NEW] [ui/app/login/page.tsx](file:///c:/Users/Kandukoori%20Tejaswini/Desktop/PhishVault2/PhishVault/ui/app/login/page.tsx)
+-   Create a login form with username and password fields.
+-   Call `/auth/login` API on submit.
+-   Store JWT token in `localStorage`.
+-   Redirect to `/scans` on success.
+
+#### [NEW] [ui/components/AuthProvider.tsx](file:///c:/Users/Kandukoori%20Tejaswini/Desktop/PhishVault2/PhishVault/ui/components/AuthProvider.tsx)
+-   Context to manage auth state (user, token, login, logout).
+-   Check for token on load.
+
+#### [MODIFY] [ui/app/layout.tsx](file:///c:/Users/Kandukoori%20Tejaswini/Desktop/PhishVault2/PhishVault/ui/app/layout.tsx)
+-   Wrap application with `AuthProvider`.
+
+#### [MODIFY] [ui/app/scans/page.tsx](file:///c:/Users/Kandukoori%20Tejaswini/Desktop/PhishVault2/PhishVault/ui/app/scans/page.tsx)
+-   Update `fetch` calls to include `Authorization: Bearer <token>` header.
+-   Handle 401 Unauthorized responses by redirecting to `/login`.
+
+## Verification Plan
+
+### Automated Tests
+-   **API Test Script**: Create a script `scripts/test_auth.sh` to:
+    1.  Register a new user.
+    2.  Login and get a token.
+    3.  Access a protected endpoint with the token (expect 200).
+    4.  Access a protected endpoint without a token (expect 401).
+
+### Manual Verification
+-   **UI Testing**:
+    1.  Open Chrome.
+    2.  Navigate to `/scans`. Verify redirection to `/login`.
+    3.  Enter credentials on `/login`.
+    4.  Verify successful login and redirection back to `/scans`.
+    5.  Verify data loads correctly.

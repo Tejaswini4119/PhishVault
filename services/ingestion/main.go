@@ -345,6 +345,16 @@ func main() {
 			log.Printf("Failed to ping DB: %v", err)
 		} else {
 			log.Println("Connected to PostgreSQL")
+			// Initialize Users Table
+			_, err = db.Exec(`CREATE TABLE IF NOT EXISTS users (
+				id SERIAL PRIMARY KEY,
+				username VARCHAR(50) UNIQUE NOT NULL,
+				password_hash TEXT NOT NULL,
+				created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+			)`)
+			if err != nil {
+				log.Printf("Failed to create users table: %v", err)
+			}
 		}
 	}
 
@@ -371,13 +381,19 @@ func main() {
 
 	// 4. HTTP Server Setup with Graceful Shutdown
 	mux := http.NewServeMux()
-	mux.HandleFunc("/submit", submitHandler)
-	mux.HandleFunc("/submit-email", submitEmailHandler)
-	mux.HandleFunc("/scans", listScansHandler)         // READ API
-	mux.HandleFunc("/stats", statsHandler)             // STATS API
-	mux.HandleFunc("/campaigns", listCampaignsHandler) // CAMPAIGNS API
-	mux.HandleFunc("/scans/", scanDetailHandler)       // DETAIL API
-	mux.HandleFunc("/health", healthHandler)           // DOCKER HEALTHCHECK
+
+	// Public Endpoints
+	mux.HandleFunc("/auth/login", loginHandler)
+	mux.HandleFunc("/auth/register", registerHandler)
+	mux.HandleFunc("/health", healthHandler) // DOCKER HEALTHCHECK
+
+	// Protected Endpoints
+	mux.HandleFunc("/submit", authMiddleware(submitHandler))
+	mux.HandleFunc("/submit-email", authMiddleware(submitEmailHandler))
+	mux.HandleFunc("/scans", authMiddleware(listScansHandler))         // READ API
+	mux.HandleFunc("/stats", authMiddleware(statsHandler))             // STATS API
+	mux.HandleFunc("/campaigns", authMiddleware(listCampaignsHandler)) // CAMPAIGNS API
+	mux.HandleFunc("/scans/", authMiddleware(scanDetailHandler))       // DETAIL API
 
 	srv := &http.Server{
 		Addr:    ":8080",

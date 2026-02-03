@@ -2,12 +2,15 @@
 
 import { useState } from 'react';
 import { Search, Bell, User, Plus, X, Loader2 } from 'lucide-react';
+import { useAuth } from '@/components/AuthProvider';
 
 const Header = () => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [url, setUrl] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [submitStatus, setSubmitStatus] = useState<'idle' | 'success' | 'error'>('idle');
+
+    const { token } = useAuth();
 
     const handleNewScan = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -17,7 +20,10 @@ const Header = () => {
         try {
             const res = await fetch('/api/submit', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
                 body: JSON.stringify({ url }),
             });
             if (res.ok) {

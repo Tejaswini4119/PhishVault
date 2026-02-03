@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { useAuth } from '@/components/AuthProvider';
+import { useRouter } from 'next/navigation';
 
 interface Scan {
     scan_id: string;
@@ -14,22 +16,48 @@ interface Scan {
 
 export default function ScansPage() {
     const [scans, setScans] = useState<Scan[]>([]);
-    const [loading, setLoading] = useState(true);
+    const [pageLoading, setPageLoading] = useState(true);
+    const { token, loading: authLoading, isAuthenticated } = useAuth();
+    const router = useRouter();
 
     useEffect(() => {
-        fetch('/api/scans')
-            .then(res => res.json())
-            .then(data => {
-                setScans(data || []);
-                setLoading(false);
-            })
-            .catch(err => {
-                console.error("Failed to fetch scans:", err);
-                setLoading(false);
-            });
-    }, []);
+        if (!authLoading && !isAuthenticated) {
+            router.push("/login");
+            return;
+        }
 
-    if (loading) return <div className="text-white">Loading scans...</div>;
+        if (isAuthenticated && token) {
+            setPageLoading(true);
+            fetch('/api/scans', {
+                headers: {
+                    "Authorization": `Bearer ${token}`
+                }
+            })
+                .then(res => {
+                    if (res.status === 401) {
+                        // Token might be invalid/expired
+                        router.push("/login");
+                        throw new Error("Unauthorized");
+                    }
+                    return res.json();
+                })
+                .then(data => {
+                    // Check if data is array
+                    if (Array.isArray(data)) {
+                        setScans(data);
+                    } else {
+                        setScans([]);
+                    }
+                    setPageLoading(false);
+                })
+                .catch(err => {
+                    console.error("Failed to fetch scans:", err);
+                    setPageLoading(false);
+                });
+        }
+    }, [authLoading, isAuthenticated, token, router]);
+
+    if (authLoading || pageLoading) return <div className="text-white p-6">Loading scans...</div>;
 
     return (
         <div className="space-y-6">
@@ -62,7 +90,7 @@ export default function ScansPage() {
                         </thead>
                         <tbody>
                             {scans.length === 0 ? (
-                                <tr><td colSpan={6} className="px-6 py-8 text-center text-slate-500">No records found.</td></tr>
+                                <tr><td colSpan={7} className="px-6 py-8 text-center text-slate-500">No records found.</td></tr>
                             ) : (
                                 scans.map((scan) => (
                                     <tr key={scan.scan_id} className="border-b border-slate-800 hover:bg-slate-800/50 transition-colors">

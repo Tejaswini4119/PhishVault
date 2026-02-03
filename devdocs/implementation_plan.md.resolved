@@ -1,57 +1,25 @@
-# Authentication & Security Implementation Plan
+# Fix View Report and Verify Auth
 
-## Goal Description
-Secure the Ingestion API and UI by implementing user authentication.
-Currently, the API is open to anyone. We will add JWT-based authentication to the Go backend and a Login page to the Next.js frontend.
+The "View Report" feature in the Live Scan Registry is failing because the scan details page (`/scans/[id]`) does not include the authentication token in its API requests, causing the backend (which is secured) to reject the request. Additionally, the page uses a hardcoded localhost URL instead of the proxied `/api` route.
+
+## User Review Required
+> [!NOTE]
+> No breaking changes. This is a fix for existing non-functional code.
 
 ## Proposed Changes
 
-### Backend (Go) - `services/ingestion`
-
-#### [MODIFY] [main.go](file:///c:/Users/Kandukoori%20Tejaswini/Desktop/PhishVault2/PhishVault/services/ingestion/main.go)
--   Initialize `users` table in [main()](file:///c:/Users/Kandukoori%20Tejaswini/Desktop/PhishVault2/PhishVault/services/ingestion/main.go#330-440) database connection block.
--   Add `AuthMiddleware` function to validate JWT tokens.
--   Wrap protected routes (`/submit`, `/scans`, etc.) with `AuthMiddleware`.
--   Add `/auth/login` and `/auth/register` endpoints.
-
-#### [NEW] [auth.go](file:///c:/Users/Kandukoori%20Tejaswini/Desktop/PhishVault2/PhishVault/services/ingestion/auth.go)
--   Define `User` struct.
--   Implement `RegisterHandler`: hashes password using `bcrypt`, saves user to DB.
--   Implement `LoginHandler`: verifies password, generates JWT token.
--   Implement `GenerateToken` and `ValidateToken` helper functions.
-
-### Frontend (Next.js) - `ui`
-
-#### [NEW] [ui/app/login/page.tsx](file:///c:/Users/Kandukoori%20Tejaswini/Desktop/PhishVault2/PhishVault/ui/app/login/page.tsx)
--   Create a login form with username and password fields.
--   Call `/auth/login` API on submit.
--   Store JWT token in `localStorage`.
--   Redirect to `/scans` on success.
-
-#### [NEW] [ui/components/AuthProvider.tsx](file:///c:/Users/Kandukoori%20Tejaswini/Desktop/PhishVault2/PhishVault/ui/components/AuthProvider.tsx)
--   Context to manage auth state (user, token, login, logout).
--   Check for token on load.
-
-#### [MODIFY] [ui/app/layout.tsx](file:///c:/Users/Kandukoori%20Tejaswini/Desktop/PhishVault2/PhishVault/ui/app/layout.tsx)
--   Wrap application with `AuthProvider`.
-
-#### [MODIFY] [ui/app/scans/page.tsx](file:///c:/Users/Kandukoori%20Tejaswini/Desktop/PhishVault2/PhishVault/ui/app/scans/page.tsx)
--   Update `fetch` calls to include `Authorization: Bearer <token>` header.
--   Handle 401 Unauthorized responses by redirecting to `/login`.
+### UI
+#### [MODIFY] [page.tsx](file:///c:/Users/Kandukoori%20Tejaswini/Desktop/PhishVault2/PhishVault/ui/app/scans/[id]/page.tsx)
+- Import `useAuth` hook.
+- Add authentication check (redirect to `/login` if not logged in).
+- Update `fetch` call to use `/api/scans/${id}` instead of `http://localhost:8080...`.
+- Add `Authorization: Bearer ${token}` header to the `fetch` request.
 
 ## Verification Plan
 
-### Automated Tests
--   **API Test Script**: Create a script `scripts/test_auth.sh` to:
-    1.  Register a new user.
-    2.  Login and get a token.
-    3.  Access a protected endpoint with the token (expect 200).
-    4.  Access a protected endpoint without a token (expect 401).
-
 ### Manual Verification
--   **UI Testing**:
-    1.  Open Chrome.
-    2.  Navigate to `/scans`. Verify redirection to `/login`.
-    3.  Enter credentials on `/login`.
-    4.  Verify successful login and redirection back to `/scans`.
-    5.  Verify data loads correctly.
+1.  **Code Review**: Verify that `ui/app/scans/[id]/page.tsx` logic matches [ui/app/scans/page.tsx](file:///c:/Users/Kandukoori%20Tejaswini/Desktop/PhishVault2/PhishVault/ui/app/scans/page.tsx) in terms of authentication handling.
+2.  **User Verification**: Ask the user to click "View Report" again. It should now load the report details instead of showing an error or loading indefinitely.
+
+### Automated Tests
+- None available for UI components in the current environment. Relying on code correctness and consistency with working pages.

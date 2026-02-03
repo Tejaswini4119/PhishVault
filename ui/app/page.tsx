@@ -3,6 +3,8 @@
 import { useEffect, useState } from 'react';
 import StatsCard from "@/components/dashboard/StatsCard";
 import { Activity, Disc, AlertTriangle, Database } from 'lucide-react';
+import { useAuth } from '@/components/AuthProvider';
+import { useRouter } from 'next/navigation';
 
 interface Scan {
   scan_id: string;
@@ -27,20 +29,34 @@ export default function Home() {
     threats_blocked: 0,
     graph_nodes: 0
   });
+  const { token, loading, isAuthenticated } = useAuth();
+  const router = useRouter();
 
   useEffect(() => {
+    if (!loading && !isAuthenticated) {
+      router.push("/login");
+      return;
+    }
+
+    if (!token) return;
+
     // Poll for updates every 5 seconds
     const fetchData = async () => {
       try {
+        const headers = { "Authorization": `Bearer ${token}` };
         const [scansRes, statsRes] = await Promise.all([
-          fetch('/api/scans'),
-          fetch('/api/stats')
+          fetch('/api/scans', { headers }),
+          fetch('/api/stats', { headers })
         ]);
 
         if (scansRes.ok) {
           const data = await scansRes.json();
-          setScans(data || []);
+          // Ensure data is array
+          setScans(Array.isArray(data) ? data : []);
+        } else if (scansRes.status === 401) {
+          router.push("/login"); // Token expired
         }
+
         if (statsRes.ok) {
           const data = await statsRes.json();
           setStats(data);
@@ -53,7 +69,9 @@ export default function Home() {
     fetchData();
     const interval = setInterval(fetchData, 5000);
     return () => clearInterval(interval);
-  }, []);
+  }, [loading, isAuthenticated, token, router]);
+
+  if (loading) return <div className="text-white p-6">Loading dashboard...</div>;
 
   return (
     <div className="space-y-6">

@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { AlertTriangle, CheckCircle, XCircle, Shield, Globe, Image as ImageIcon } from "lucide-react";
+import { useAuth } from "@/components/AuthProvider";
 
 interface ScanReport {
   scan_id: string;
@@ -21,10 +22,22 @@ export default function ScanReportPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [isImageOpen, setIsImageOpen] = useState(false);
+  const { token, loading: authLoading } = useAuth();
 
   useEffect(() => {
-    if (!id) return;
-    fetch(`http://localhost:8080/scans/${id}`)
+    if (!id || authLoading) return;
+
+    if (!token) {
+      setError("You must be logged in to view this report");
+      setLoading(false);
+      return;
+    }
+
+    fetch(`http://localhost:8080/scans/${id}`, {
+      headers: {
+        Authorization: `Bearer ${token}`
+      }
+    })
       .then((res) => {
         if (!res.ok) throw new Error("Failed to fetch report");
         return res.json();
@@ -37,7 +50,7 @@ export default function ScanReportPage() {
         setError(err.message);
         setLoading(false);
       });
-  }, [id]);
+  }, [id, token, authLoading]);
 
   if (loading) return <div className="min-h-screen bg-black text-white p-10 flex items-center justify-center">Loading Report...</div>;
   if (error) return <div className="min-h-screen bg-black text-white p-10 flex items-center justify-center text-red-500">Error: {error}</div>;

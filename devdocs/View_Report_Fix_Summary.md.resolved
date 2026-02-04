@@ -1,0 +1,40 @@
+# View Report Issue Resolution Summary
+
+## Incident Overview
+**Issue:** Users received an "Error: Failed to fetch report" message when attempting to view scan details in the Live Scans view.
+**Severity:** High (Feature broken)
+**Date:** 2026-02-04
+
+## Root Cause Analysis
+The investigation revealed a mismatch between the frontend request and the backend security requirements:
+1.  **Backend Enforcement:** The API endpoint `/scans/{id}` is protected by [authMiddleware](file:///c:/Users/Kandukoori%20Tejaswini/Desktop/PhishVault2/PhishVault/services/ingestion/auth.go#132-187), which mandates a valid JWT token in the `Authorization` header.
+2.  **Frontend Gap:** The frontend component `ui/app/scans/[id]/page.tsx` was performing a standard `fetch` request without including the user's authentication credentials.
+3.  **Result:** The server rejected the request with a `401 Unauthorized` status, causing the "Failed to fetch" error.
+
+## Resolution
+The following changes were applied to `ui/app/scans/[id]/page.tsx` to align the frontend with the backend security protocol:
+
+### 1. Authentication Integration
+We integrated the [useAuth](file:///c:/Users/Kandukoori%20Tejaswini/Desktop/PhishVault2/PhishVault/ui/components/AuthProvider.tsx#56-63) hook from the [AuthProvider](file:///c:/Users/Kandukoori%20Tejaswini/Desktop/PhishVault2/PhishVault/ui/components/AuthProvider.tsx#17-55) component to access the current user's security token.
+```typescript
+const { token, loading: authLoading } = useAuth();
+```
+
+### 2. Header Injection
+We modified the `fetch` request to include the standard Bearer token in the headers.
+```typescript
+fetch(`http://localhost:8080/scans/${id}`, {
+  headers: {
+    Authorization: `Bearer ${token}`
+  }
+})
+```
+
+### 3. State Handling
+Added logic to ensure the request is suspended until the authentication state is fully loaded, preventing premature failures.
+
+## Verification
+- **Code Review:** Confirmed that the `Authorization` header is now correctly constructed and sent.
+- **Workflow Check:** The application now correctly retrieves the token from the user session and authenticates the API call, resolving the 401 error.
+
+The "View Report" functionality is now fully operational.

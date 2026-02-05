@@ -59,7 +59,27 @@ func (p *CanonicalizerProcessor) Process(ctx context.Context, input []byte, sour
 		finalParsed.Host = strings.ToLower(host)
 		finalParsed.Scheme = strings.ToLower(finalParsed.Scheme)
 		finalParsed.Fragment = "" // Strip fragments usually
-		finalURL = finalParsed.String()
+
+		// Force Unicode Host in output (net/url String() might Encode it)
+		// We manually construct to satisfy "Punycode Transparency" requirement for internal storage
+		finalURL = finalParsed.Scheme + "://" + finalParsed.Host
+		if finalParsed.Path != "" || finalParsed.RawQuery != "" {
+			// Use EscapedPath() if we want standard encoding for path, or just Path if we want raw?
+			// Usually Path is decoded. EscapedPath is encoded.
+			// Let's use RequestURI() equivalent but safer.
+			// If Path is empty, we don't start with /. Parse logic usually ensures Path starts with / if present?
+			// Actually URL.Path doesn't contain leading / for relative? But for absolute it does?
+			// Let's rely on string concatenation carefully or use String() and replace Host?
+			// Replacing Host in the String() output is tricky if it was encoded.
+			// Let's append Path/Query.
+			if !strings.HasPrefix(finalParsed.Path, "/") && finalParsed.Path != "" {
+				finalURL += "/"
+			}
+			finalURL += finalParsed.EscapedPath()
+			if finalParsed.RawQuery != "" {
+				finalURL += "?" + finalParsed.RawQuery
+			}
+		}
 	}
 
 	// Construct Metadata

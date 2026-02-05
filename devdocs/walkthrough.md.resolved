@@ -1,0 +1,48 @@
+# PhishVault-2 Stage 1: Ingestion & Deconstruction Walkthrough
+
+I have implemented the generic Ingestion Engine logic to support normalizing URLs, Emails, and Files into a unified schema.
+
+## Changes Created
+
+### 1. Ingestion Engine Package (`services/ingestion/engine`)
+- **Factory Pattern**: [ArtifactFactory](file:///c:/Users/Kandukoori%20Tejaswini/Desktop/PhishVault2/PhishVault/services/ingestion/engine/factory.go#11-14) handles routing artifacts to the correct processor.
+- **Canonicalizer**: 
+    - Decodes Punycode (`xn--` to Unicode).
+    - Strips tracking parameters (`utm_`, `fbclid`, etc.).
+    - Unwinds redirects (up to 12 hops) to find the final landing page.
+- **Email Processor**:
+    - Parses `.eml` / raw bytes.
+    - Extracts Authentication Headers (SPF/DKIM).
+    - Decomposes Multipart emails into Body and Attachments.
+- **Attachment Processor**:
+    - Calculates SHA256/MD5 hashes.
+    - Detects content types.
+    - Extracts URLs from text/html content using regex.
+
+### 2. Service Integration
+- Refactored [services/ingestion/main.go](file:///c:/Users/Kandukoori%20Tejaswini/Desktop/PhishVault2/PhishVault/services/ingestion/main.go) to use the new `engine`.
+- [submitHandler](file:///c:/Users/Kandukoori%20Tejaswini/Desktop/PhishVault2/PhishVault/services/ingestion/main.go#55-118) now uses [CanonicalizerProcessor](file:///c:/Users/Kandukoori%20Tejaswini/Desktop/PhishVault2/PhishVault/services/ingestion/engine/canonicalizer.go#13-16).
+- [submitEmailHandler](file:///c:/Users/Kandukoori%20Tejaswini/Desktop/PhishVault2/PhishVault/services/ingestion/main.go#119-184) now uses [EmailProcessor](file:///c:/Users/Kandukoori%20Tejaswini/Desktop/PhishVault2/PhishVault/services/ingestion/engine/email_processor.go#17-18) and supports multipart parsing.
+
+## Verification Results
+
+### Build Verification
+The `ingestion` service compiles successfully.
+
+### Unit Tests
+Ran unit tests for [CanonicalizerProcessor](file:///c:/Users/Kandukoori%20Tejaswini/Desktop/PhishVault2/PhishVault/services/ingestion/engine/canonicalizer.go#13-16) covering:
+- Normal URLs
+- Tracking Parameter Stripping
+- Punycode transparency (`xn--caf-dma.com` -> `café.com`)
+- Scheme normalization
+
+```
+=== RUN   TestCanonicalizerProcessor_Process
+--- PASS: TestCanonicalizerProcessor_Process (6.62s)
+PASS
+ok  	command-line-arguments	8.579s
+```
+
+## Next Steps
+- Implement RabbitMQ consumers in the `Worker` service to handle these new artifact types.
+- Add real storage persistence for the decomposed attachments (currently they are identified but not saved to MinIO in the MVP handler).

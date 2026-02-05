@@ -6,9 +6,9 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"io"
 	"log"
 	"net/http"
-	"net/url"
 	"os"
 	"os/signal"
 	"strings"
@@ -16,14 +16,17 @@ import (
 	"time"
 
 	"github.com/PhishVault/PhishVault-2/core/domain"
-	"github.com/PhishVault/PhishVault-2/services/ingestion/parser"
+	"github.com/PhishVault/PhishVault-2/services/ingestion/engine"
 	"github.com/PhishVault/PhishVault-2/services/intel"
 	_ "github.com/jackc/pgx/v5/stdlib" // Postgres Driver
 )
 
-var producer *Producer
-var db *sql.DB
-var neo4jClient *intel.Neo4jClient
+var (
+	producer    *Producer
+	db          *sql.DB
+	neo4jClient *intel.Neo4jClient
+	factory     *engine.ArtifactFactory
+)
 
 type SubmitRequest struct {
 	URL string `json:"url"`
@@ -66,21 +69,44 @@ func submitHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Validate URL
-	parsedURL, err := url.ParseRequestURI(req.URL)
-	if err != nil || (parsedURL.Scheme != "http" && parsedURL.Scheme != "https") {
-		http.Error(w, "Invalid URL: Must be a valid HTTP/HTTPS URL", http.StatusBadRequest)
+	// USE ENGINE: Ingest URL
+	// The engine handles canonicalization, stripping params, and redirect unwinding
+	ctx := r.Context()
+	artifact, err := factory.Ingest(ctx, engine.ArtifactTypeURL, []byte(req.URL), "API-USER", nil)
+	if err != nil {
+		log.Printf("Ingestion failed: %v", err)
+		http.Error(w, "Ingestion Failed: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	scanID := fmt.Sprintf("%x", sha256.Sum256([]byte(req.URL+time.Now().String())))
+	// Map to Legacy Domain SAL for compatibility
+	// Use the Canonical URL from the artifact
+	scanID := artifact.ID // Now generic SHA256 ID from engine logic (or we can keep existing logic)
+	// Ensuring ID consistency if we want time-based uniqueness as per old logic:
+	// The engine ID is deterministic (content hash). The old logic was URL+Time.
+	// For "ScanID" (task ID), we probably want a unique one per submission even for same URL?
+	// Let's generate a unique ScanID for the *Task*, but use the Artifact ID for the *content*.
+	// However, existing DB uses scan_id as primary key.
+	// Let's keep the old ScanID generation for the task to support re-scanning same URL.
+	scanID = fmt.Sprintf("%x", sha256.Sum256([]byte(req.URL+time.Now().String())))
 
 	task := domain.SAL{
 		ScanID:          scanID,
-		URL:             req.URL,
+		URL:             artifact.Content, // Canonical URL
 		Timestamp:       time.Now(),
 		Verdict:         "PENDING", // Initial state
 		IngestionSource: "API-URL",
+		Request: domain.RequestDetails{
+			Headers: map[string]string{
+				"Original-URL": req.URL, // tracking original
+			},
+		},
+	}
+
+	// Store Artifact Metadata (Redirect chain etc) in DB?
+	// Currently schema is simple. We'll dump it into Request headers or similar for now.
+	if chain, ok := artifact.Metadata["redirect_chain"]; ok {
+		task.Request.Headers["Redirect-Chain"] = fmt.Sprintf("%v", chain)
 	}
 
 	// 1. Write to DB (Synchronous persistence for UI visibility)
@@ -98,15 +124,38 @@ func submitEmailHandler(w http.ResponseWriter, r *http.Request) {
 
 	r.Body = http.MaxBytesReader(w, r.Body, 10<<20)
 
-	emailData, err := parser.ParseEmail(r.Body)
+	// Read full body for engine processing
+	emailBytes, err := io.ReadAll(r.Body)
 	if err != nil {
-		log.Printf("Failed to parse email: %v", err)
+		http.Error(w, "Failed to read body", http.StatusInternalServerError)
+		return
+	}
+
+	// USE ENGINE: Ingest Email
+	ctx := r.Context()
+	artifact, err := factory.Ingest(ctx, engine.ArtifactTypeEmail, emailBytes, "API-EMAIL-USER", nil)
+	if err != nil {
+		log.Printf("Email Ingestion failed: %v", err)
 		http.Error(w, "Invalid Email Content", http.StatusBadRequest)
 		return
 	}
 
-	scanID := fmt.Sprintf("%x", sha256.Sum256([]byte(emailData.Subject+time.Now().String())))
-	spfResult := parser.AnalyzeSPF(emailData.Headers)
+	// Map to Legacy Domain SAL
+	// Artifact Content is the body text. Metadata has headers.
+	subject := "Unknown Subject"
+	if s, ok := artifact.Metadata["Subject"]; ok {
+		subject = s.(string)
+	}
+	from := ""
+	if f, ok := artifact.Metadata["From"]; ok {
+		from = f.(string)
+	}
+	spf := ""
+	if s, ok := artifact.Metadata["auth_spf_verdict"]; ok {
+		spf = s.(string)
+	}
+
+	scanID := fmt.Sprintf("%x", sha256.Sum256([]byte(subject+time.Now().String())))
 
 	task := domain.SAL{
 		ScanID:          scanID,
@@ -117,11 +166,16 @@ func submitEmailHandler(w http.ResponseWriter, r *http.Request) {
 		Request: domain.RequestDetails{
 			Method: "SMTP-PARSE",
 			Headers: map[string]string{
-				"Subject": emailData.Subject,
-				"From":    emailData.From,
-				"SPF":     spfResult,
+				"Subject": subject,
+				"From":    from,
+				"SPF":     spf,
 			},
 		},
+	}
+
+	// Handle Children (Attachments/Links)
+	if len(artifact.Children) > 0 {
+		task.Request.Headers["Attachment-Count"] = fmt.Sprintf("%d", len(artifact.Children))
 	}
 
 	go saveScanToDB(task)
@@ -329,6 +383,12 @@ func scanDetailHandler(w http.ResponseWriter, r *http.Request) {
 
 func main() {
 	var err error
+
+	// Initialize Ingestion Engine
+	factory = engine.NewArtifactFactory()
+	factory.RegisterProcessor(engine.ArtifactTypeURL, engine.NewCanonicalizerProcessor())
+	factory.RegisterProcessor(engine.ArtifactTypeEmail, engine.NewEmailProcessor())
+	factory.RegisterProcessor(engine.ArtifactTypeFile, engine.NewAttachmentProcessor()) // For direct file uploads if we add endpoint
 
 	// Database Connection
 	dbHost := os.Getenv("DB_HOST")

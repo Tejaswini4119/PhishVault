@@ -1,25 +1,65 @@
-# Fix View Report and Verify Auth
+# Ingestion & Deconstruction (Stage 1) Implementation Plan
 
-The "View Report" feature in the Live Scan Registry is failing because the scan details page (`/scans/[id]`) does not include the authentication token in its API requests, causing the backend (which is secured) to reject the request. Additionally, the page uses a hardcoded localhost URL instead of the proxied `/api` route.
+## Goal Description
+Implement the "Gateway" for PhishVault-2, responsible for ingesting, normalizing, and deconstructing artifacts (URLs, Emails, Files). This involves creating a unified Ingestion Engine that uses a Factory pattern to handle different input types, canonicalizes URLs, and decomposes composite artifacts like emails into their components.
 
 ## User Review Required
-> [!NOTE]
-> No breaking changes. This is a fix for existing non-functional code.
+> [!IMPORTANT]
+> The existing [submitEmailHandler](file:///c:/Users/Kandukoori%20Tejaswini/Desktop/PhishVault2/PhishVault/services/ingestion/main.go#93-130) and [submitHandler](file:///c:/Users/Kandukoori%20Tejaswini/Desktop/PhishVault2/PhishVault/services/ingestion/main.go#52-92) in [services/ingestion/main.go](file:///c:/Users/Kandukoori%20Tejaswini/Desktop/PhishVault2/PhishVault/services/ingestion/main.go) will be significantly refactored to use the new `engine` package.
 
 ## Proposed Changes
 
-### UI
-#### [MODIFY] [page.tsx](file:///c:/Users/Kandukoori%20Tejaswini/Desktop/PhishVault2/PhishVault/ui/app/scans/[id]/page.tsx)
-- Import `useAuth` hook.
-- Add authentication check (redirect to `/login` if not logged in).
-- Update `fetch` call to use `/api/scans/${id}` instead of `http://localhost:8080...`.
-- Add `Authorization: Bearer ${token}` header to the `fetch` request.
+### Service: Ingestion
+I will create a new package `services/ingestion/engine` to encapsulate the logic.
+
+#### [NEW] [types.go](file:///c:/Users/Kandukoori Tejaswini/Desktop/PhishVault2/PhishVault/services/ingestion/engine/types.go)
+- Define `IngestedArtifact` struct.
+- Define `ArtifactType` enum (URL, EMAIL, FILE).
+- Define `Processor` interface.
+
+#### [NEW] [factory.go](file:///c:/Users/Kandukoori Tejaswini/Desktop/PhishVault2/PhishVault/services/ingestion/engine/factory.go)
+- Implement `ArtifactFactory` to select the correct processor based on input type.
+- Implement `Ingest(ctx, input)` method that orchestrates hashing, processing, and storage.
+
+#### [NEW] [canonicalizer.go](file:///c:/Users/Kandukoori Tejaswini/Desktop/PhishVault2/PhishVault/services/ingestion/engine/canonicalizer.go)
+- Implement `CanonicalizeURL(url string) (string, Metadata)`
+- Punycode decoding.
+- Parameter stripping (utm_, etc).
+- Redirect unwinding (using `net/http` client with limits).
+
+#### [NEW] [email_processor.go](file:///c:/Users/Kandukoori Tejaswini/Desktop/PhishVault2/PhishVault/services/ingestion/engine/email_processor.go)
+- Implement `Process(artifact)` for Emails.
+- Parse EML/MSG.
+- Extract Headers (X-Headers, Authentication results).
+- Deconstruct into Body and Attachments.
+- Return list of child artifacts (Links, Attachments).
+
+#### [NEW] [attachment_processor.go](file:///c:/Users/Kandukoori Tejaswini/Desktop/PhishVault2/PhishVault/services/ingestion/engine/attachment_processor.go)
+- Implement `Process(artifact)` for Files.
+- Calculate Hashes (SHA256, MD5).
+- Magic number file type detection.
+- Extract text/URLs if applicable (basic regex for now).
+
+#### [MODIFY] [main.go](file:///c:/Users/Kandukoori Tejaswini/Desktop/PhishVault2/PhishVault/services/ingestion/main.go)
+- Initialize `ArtifactFactory`.
+- Update [submitHandler](file:///c:/Users/Kandukoori%20Tejaswini/Desktop/PhishVault2/PhishVault/services/ingestion/main.go#52-92) to use `Factory.Ingest(URL)`.
+- Update [submitEmailHandler](file:///c:/Users/Kandukoori%20Tejaswini/Desktop/PhishVault2/PhishVault/services/ingestion/main.go#93-130) to use `Factory.Ingest(Email)`.
+- Ensure data is persisted to DB/MinIO and dispatched to RabbitMQ via the new structure.
 
 ## Verification Plan
 
-### Manual Verification
-1.  **Code Review**: Verify that `ui/app/scans/[id]/page.tsx` logic matches [ui/app/scans/page.tsx](file:///c:/Users/Kandukoori%20Tejaswini/Desktop/PhishVault2/PhishVault/ui/app/scans/page.tsx) in terms of authentication handling.
-2.  **User Verification**: Ask the user to click "View Report" again. It should now load the report details instead of showing an error or loading indefinitely.
-
 ### Automated Tests
-- None available for UI components in the current environment. Relying on code correctness and consistency with working pages.
+- **Unit Tests**: Create [_test.go](file:///c:/Users/Kandukoori%20Tejaswini/Desktop/PhishVault2/PhishVault/services/storage/verification_test.go) files for each new processor.
+    - `canonicalizer_test.go`: Test various URL formats, punycode, redirects.
+    - `email_processor_test.go`: Parse sample .eml files and verify child artifacts.
+    - `factory_test.go`: Verify correct processor selection and workflow.
+- **Integration Test**:
+    - Run the ingestion service.
+    - Submit a complex Email via `curl` or a Go test script.
+    - Verify in Postgres (scans table) and MinIO (artifacts) that the email and its children (attachments/links) are stored.
+
+### Manual Verification
+1.  **URL Submission**: Submit a known tracking URL (e.g. with `utm_source`) and verify it is stripped in the DB.
+2.  **Email Submission**: Submit a `.eml` file with an attachment. Verify:
+    -   Email is stored.
+    -   Attachment is stored as a separate artifact with `parent_id` pointing to the email.

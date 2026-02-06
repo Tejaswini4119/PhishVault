@@ -1,0 +1,66 @@
+# Ingestion Enhancements: Deep Email Forensics & Attachment Detonation
+
+## Goal Description
+Upgrade the Ingestion Engine to perform deep forensic analysis on incoming artifacts.
+1.  **Deep Email Forensics**: Implement independent cryptographic verification of DKIM and DMARC signatures for raw emails, rather than relying solely on upstream headers.
+2.  **Attachment Detonation (Stage 1)**: Implement recursive extraction for composite file types (Zip, Nested Emails) to expose hidden payloads.
+
+## User Review Required
+> [!IMPORTANT]
+> This plan introduces extensive use of the `github.com/emersion/go-msgauth` library for standard-compliant verification.
+> This ensures we don't roll our own crypto/parsing logic for sensitive checks.
+
+> [!WARNING]
+> Recursive attachment processing (Zip bombs) will be capped at a depth of 3 and a max file limit of 10 to prevent DoS.
+
+## Proposed Changes
+
+### Module: Ingestion Engine
+
+#### [NEW] [parser/verifier.go](file:///c:/Users/Kandukoori Tejaswini/Desktop/PhishVault2/PhishVault/services/ingestion/parser/verifier.go)
+- **Purpose**: dedicated file for cryptographic verifications.
+- `VerifyDKIM(r io.Reader) (AuthResult, error)`: Verifies DKIM signatures.
+- `VerifySPF(ip string, domain string) (AuthResult, error)`: Performs SPF DNS lookup (if sender IP is available).
+- `VerifyDMARC(domain string, spfResult, dkimResult) (AuthResult, error)`: Checks DMARC records.
+- Note: We will focus on DKIM first as it acts on the *content*. SPF requires the *sender IP* which is often lost in "upload raw file" scenarios (unless we simulate/trust headers).
+
+#### [MODIFY] [engine/email_processor.go](file:///c:/Users/Kandukoori Tejaswini/Desktop/PhishVault2/PhishVault/services/ingestion/engine/email_processor.go)
+- Integrate `parser.VerifyDKIM` logic.
+- Store `auth_dkim_independent` in metadata.
+- If the email contains nested generic attachments that are actually other emails (`message/rfc822`), flag them for recursive processing.
+
+#### [MODIFY] [engine/attachment_processor.go](file:///c:/Users/Kandukoori Tejaswini/Desktop/PhishVault2/PhishVault/services/ingestion/engine/attachment_processor.go)
+- **Recursive Processing**:
+    - Detect `application/zip` and `application/x-tar`.
+    - Use `archive/zip` to read standard archives.
+    - Extract files (in-memory if small) and feed them back into `ArtifactFactory.Ingest()` as children.
+    - **Guards**: Max Depth = 3. Max Files = 10. Max Size = 10MB per child.
+- **Office Docs**:
+    - Detect `application/msword` or `.docx`.
+    - Flag "Macros Potential" (simple byte sequence check for now).
+
+#### [MODIFY] [engine/factory.go](file:///c:/Users/Kandukoori Tejaswini/Desktop/PhishVault2/PhishVault/services/ingestion/engine/factory.go)
+- Allow `Ingest` to accept a `depth` parameter to track recursion.
+
+## Verification Plan
+
+### Automated Tests
+- **Unit Tests**:
+    - `verifier_test.go`: Test with a sample signed `.eml` (we can generate one or use a fixture).
+    - `attachment_recursion_test.go`: Create a zip file containing a text file. Submit it and verify 2 artifacts are created (Parent Zip + Child Text).
+    - `email_recursion_test.go`: Submit an email with an attached email. Verify 2 Email artifacts.
+
+### Manual Verification
+1.  **DKIM Check**:
+    - Download a real legitimate email (e.g. from Gmail) as `.eml`.
+    - Submit to `/submit-email`.
+    - Check DB/Logs: verify `auth_dkim_independent` is "PASS".
+    - Tamper with the `.eml` body (change one character).
+    - Submit again.
+    - Check DB/Logs: verify `auth_dkim_independent` is "FAIL".
+2.  **Zip Detonation**:
+    - Create `payload.txt` ("evil code").
+    - Zip it into `malware.zip`.
+    - Attach `malware.zip` to an email.
+    - Submit email.
+    - Verify PhishVault extracts: [Email](file:///c:/Users/Kandukoori%20Tejaswini/Desktop/PhishVault2/PhishVault/services/ingestion/engine/email_processor.go#17-18) -> `malware.zip` -> `payload.txt`.

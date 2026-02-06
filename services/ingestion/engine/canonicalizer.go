@@ -18,6 +18,10 @@ func NewCanonicalizerProcessor() *CanonicalizerProcessor {
 	return &CanonicalizerProcessor{}
 }
 
+func (p *CanonicalizerProcessor) SetFactory(f *ArtifactFactory) {
+	// No-op: Canonicalizer is leaf node
+}
+
 func (p *CanonicalizerProcessor) Process(ctx context.Context, input []byte, sourceID string, metadata map[string]interface{}) (*IngestedArtifact, error) {
 	rawURL := string(input)
 

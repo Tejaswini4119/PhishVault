@@ -30,6 +30,8 @@ type IngestedArtifact struct {
 
 // Processor interface handles the specific logic for parsing and normalizing an artifact type.
 type Processor interface {
+	// SetFactory injects the ArtifactFactory to allow recursive ingestion.
+	SetFactory(f *ArtifactFactory)
 	// Process takes raw input and returns a normalized IngestedArtifact and any sub-artifacts.
 	Process(ctx context.Context, input []byte, sourceID string, metadata map[string]interface{}) (*IngestedArtifact, error)
 }

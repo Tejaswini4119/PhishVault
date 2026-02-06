@@ -14,10 +14,16 @@ import (
 	"github.com/PhishVault/PhishVault-2/services/ingestion/parser"
 )
 
-type EmailProcessor struct{}
+type EmailProcessor struct {
+	factory *ArtifactFactory
+}
 
 func NewEmailProcessor() *EmailProcessor {
 	return &EmailProcessor{}
+}
+
+func (p *EmailProcessor) SetFactory(f *ArtifactFactory) {
+	p.factory = f
 }
 
 func (p *EmailProcessor) Process(ctx context.Context, input []byte, sourceID string, metadata map[string]interface{}) (*IngestedArtifact, error) {
@@ -42,6 +48,13 @@ func (p *EmailProcessor) Process(ctx context.Context, input []byte, sourceID str
 	}
 	spfResult := parser.AnalyzeSPF(authHeaders)
 	headers["auth_spf_verdict"] = spfResult
+
+	// 2b. DKIM Verification (Independent)
+	dkimResult, err := parser.VerifyDKIM(bytes.NewReader(input))
+	if err != nil {
+		headers["auth_dkim_error"] = err.Error()
+	}
+	headers["auth_dkim_independent"] = dkimResult
 
 	artifact := &IngestedArtifact{
 		Type:            ArtifactTypeEmail,
@@ -70,7 +83,7 @@ func (p *EmailProcessor) Process(ctx context.Context, input []byte, sourceID str
 			}
 
 			// Process Part
-			childArtifact, err := p.processPart(part, sourceID)
+			childArtifact, err := p.processPart(ctx, part, sourceID)
 			if err == nil && childArtifact != nil {
 				if childArtifact.Type == ArtifactTypeFile {
 					artifact.Children = append(artifact.Children, childArtifact)
@@ -95,7 +108,7 @@ func (p *EmailProcessor) Process(ctx context.Context, input []byte, sourceID str
 	return artifact, nil
 }
 
-func (p *EmailProcessor) processPart(part *multipart.Part, sourceID string) (*IngestedArtifact, error) {
+func (p *EmailProcessor) processPart(ctx context.Context, part *multipart.Part, sourceID string) (*IngestedArtifact, error) {
 	filename := part.FileName()
 	contentType := part.Header.Get("Content-Type")
 
@@ -106,23 +119,33 @@ func (p *EmailProcessor) processPart(part *multipart.Part, sourceID string) (*In
 
 	// If it has a filename, treat as attachment
 	if filename != "" {
+		// Prepare metadata
+		meta := map[string]interface{}{"filename": filename, "content_type": contentType, "size": len(data)}
+
+		// Recursion hook: if we have a factory, use it to fully ingest the attachment (which might be a zip, etc)
+		if p.factory != nil {
+			return p.factory.Ingest(ctx, ArtifactTypeFile, data, sourceID, meta)
+		}
+
+		// Fallback for no factory (unit tests?)
 		return &IngestedArtifact{
 			Type:            ArtifactTypeFile,
-			Content:         "", // Binary data handling? Ideally stored separately, but here generic.
-			Metadata:        map[string]interface{}{"filename": filename, "content_type": contentType, "size": len(data)},
+			Content:         "",
+			Metadata:        meta,
 			SourceID:        sourceID,
 			Timestamp:       time.Now(),
 			IngestionSource: "EMAIL_ATTACHMENT",
 		}, nil
 	}
 
-	// Otherwise treat as body content
-	// Handle transfer encoding if needed (base64/quoted-printable handled by Go's multipart usually?)
-	// Actually Go's multipart.Part Reader handles decoding automatically if Content-Transfer-Encoding is set?
-	// Verified: No, Go's multipart does NOT automatically decode base64/quoted-printable.
-	// Ideally we need to check Content-Transfer-Encoding.
-	// For MVP, we'll assume basic text. To make it robust, we'll need a decoder.
+	// Handle Nested Emails (Forwarded messages, usually "message/rfc822")
+	if strings.Contains(contentType, "message/rfc822") {
+		if p.factory != nil {
+			return p.factory.Ingest(ctx, ArtifactTypeEmail, data, sourceID, map[string]interface{}{"parent_type": "email_nested"})
+		}
+	}
 
+	// Otherwise treat as body content
 	return &IngestedArtifact{
 		Type:     "BODY_PART", // Internal type, processed into parent
 		Content:  string(data),

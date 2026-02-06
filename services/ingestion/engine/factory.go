@@ -19,6 +19,7 @@ func NewArtifactFactory() *ArtifactFactory {
 }
 
 func (f *ArtifactFactory) RegisterProcessor(t ArtifactType, p Processor) {
+	p.SetFactory(f)
 	f.processors[t] = p
 }
 

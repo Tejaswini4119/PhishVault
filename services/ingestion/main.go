@@ -79,41 +79,11 @@ func submitHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Map to Legacy Domain SAL for compatibility
-	// Use the Canonical URL from the artifact
-	scanID := artifact.ID // Now generic SHA256 ID from engine logic (or we can keep existing logic)
-	// Ensuring ID consistency if we want time-based uniqueness as per old logic:
-	// The engine ID is deterministic (content hash). The old logic was URL+Time.
-	// For "ScanID" (task ID), we probably want a unique one per submission even for same URL?
-	// Let's generate a unique ScanID for the *Task*, but use the Artifact ID for the *content*.
-	// However, existing DB uses scan_id as primary key.
-	// Let's keep the old ScanID generation for the task to support re-scanning same URL.
-	scanID = fmt.Sprintf("%x", sha256.Sum256([]byte(req.URL+time.Now().String())))
+	// Process and Publish (Recursive)
+	scanID := processAndPublish(w, artifact, "")
 
-	task := domain.SAL{
-		ScanID:          scanID,
-		URL:             artifact.Content, // Canonical URL
-		Timestamp:       time.Now(),
-		Verdict:         "PENDING", // Initial state
-		IngestionSource: "API-URL",
-		Request: domain.RequestDetails{
-			Headers: map[string]string{
-				"Original-URL": req.URL, // tracking original
-			},
-		},
-	}
-
-	// Store Artifact Metadata (Redirect chain etc) in DB?
-	// Currently schema is simple. We'll dump it into Request headers or similar for now.
-	if chain, ok := artifact.Metadata["redirect_chain"]; ok {
-		task.Request.Headers["Redirect-Chain"] = fmt.Sprintf("%v", chain)
-	}
-
-	// 1. Write to DB (Synchronous persistence for UI visibility)
-	go saveScanToDB(task)
-
-	// 2. Publish to Queue (Async Analysis)
-	publishTask(w, task, scanID)
+	// Response is handled in processAndPublish for the root item if w is passed
+	_ = scanID
 }
 
 func submitEmailHandler(w http.ResponseWriter, r *http.Request) {
@@ -140,46 +110,8 @@ func submitEmailHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Map to Legacy Domain SAL
-	// Artifact Content is the body text. Metadata has headers.
-	subject := "Unknown Subject"
-	if s, ok := artifact.Metadata["Subject"]; ok {
-		subject = s.(string)
-	}
-	from := ""
-	if f, ok := artifact.Metadata["From"]; ok {
-		from = f.(string)
-	}
-	spf := ""
-	if s, ok := artifact.Metadata["auth_spf_verdict"]; ok {
-		spf = s.(string)
-	}
-
-	scanID := fmt.Sprintf("%x", sha256.Sum256([]byte(subject+time.Now().String())))
-
-	task := domain.SAL{
-		ScanID:          scanID,
-		URL:             "email://source",
-		Timestamp:       time.Now(),
-		IngestionSource: "API-EMAIL",
-		Verdict:         "PENDING",
-		Request: domain.RequestDetails{
-			Method: "SMTP-PARSE",
-			Headers: map[string]string{
-				"Subject": subject,
-				"From":    from,
-				"SPF":     spf,
-			},
-		},
-	}
-
-	// Handle Children (Attachments/Links)
-	if len(artifact.Children) > 0 {
-		task.Request.Headers["Attachment-Count"] = fmt.Sprintf("%d", len(artifact.Children))
-	}
-
-	go saveScanToDB(task)
-	publishTask(w, task, scanID)
+	// Process and Publish (Recursive)
+	processAndPublish(w, artifact, "")
 }
 
 // saveScanToDB inserts the initial record into Postgres
@@ -298,11 +230,86 @@ func listCampaignsHandler(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(campaigns)
 }
 
+// processAndPublish handles recursive task creation, persistence, and queueing.
+func processAndPublish(w http.ResponseWriter, artifact *engine.IngestedArtifact, parentScanID string) string {
+	// Generate Unique ScanID for this Task
+	// Mix content ID + time to ensure unique task ID even for same content
+	taskID := fmt.Sprintf("%x", sha256.Sum256([]byte(artifact.ID+time.Now().String())))
+
+	// Map to SAL
+	task := domain.SAL{
+		ScanID:          taskID,
+		Timestamp:       time.Now(),
+		Verdict:         "PENDING",
+		IngestionSource: artifact.IngestionSource,
+		ArtifactID:      artifact.ID,
+		Metadata:        artifact.Metadata, // Copy all metadata (DKIM, SPF, etc.)
+	}
+
+	// Link to Parent
+	if parentScanID != "" {
+		if task.Metadata == nil {
+			task.Metadata = make(map[string]interface{})
+		}
+		task.Metadata["parent_scan_id"] = parentScanID
+	}
+
+	// Type-Specific Mapping
+	switch artifact.Type {
+	case engine.ArtifactTypeURL:
+		task.URL = artifact.Content
+		if original, ok := artifact.Metadata["original_url"]; ok {
+			task.Request.Headers = map[string]string{"Original-URL": original.(string)}
+		}
+	case engine.ArtifactTypeEmail:
+		task.URL = "email://parsed"
+		// Map critical email headers to Top-Level Request Headers for visibility
+		headers := make(map[string]string)
+		if s, ok := artifact.Metadata["Subject"]; ok {
+			headers["Subject"] = s.(string)
+		}
+		if f, ok := artifact.Metadata["From"]; ok {
+			headers["From"] = f.(string)
+		}
+		task.Request.Headers = headers
+	case engine.ArtifactTypeFile:
+		task.URL = "file://" + artifact.ID
+		if fname, ok := artifact.Metadata["filename"]; ok {
+			task.URL = "file://" + fname.(string)
+		}
+	}
+
+	// 1. Persist
+	go saveScanToDB(task)
+
+	// 2. Publish
+	publishTask(nil, task, taskID) // Pass nil response writer, we handle response below if needed
+
+	// 3. Recurse for Children
+	for _, child := range artifact.Children {
+		processAndPublish(nil, child, taskID)
+	}
+
+	// 4. Handle HTTP Response (Only for Root Call)
+	if w != nil {
+		resp := SubmitResponse{
+			ScanID: taskID,
+			Status: "Queued",
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(resp)
+	}
+
+	return taskID
+}
+
 func publishTask(w http.ResponseWriter, task domain.SAL, scanID string) {
 	body, err := json.Marshal(task)
 	if err != nil {
 		log.Printf("Failed to marshal task: %v", err)
-		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		if w != nil {
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		}
 		return
 	}
 
@@ -310,16 +317,6 @@ func publishTask(w http.ResponseWriter, task domain.SAL, scanID string) {
 		if err := producer.Publish(body); err != nil {
 			log.Printf("Failed to publish to RabbitMQ: %v", err)
 		}
-	}
-
-	resp := SubmitResponse{
-		ScanID: scanID,
-		Status: "Queued",
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	if err := json.NewEncoder(w).Encode(resp); err != nil {
-		log.Printf("Failed to write response: %v", err)
 	}
 }
 

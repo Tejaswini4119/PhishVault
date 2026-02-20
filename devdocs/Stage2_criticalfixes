@@ -1,0 +1,47 @@
+# Phase 2: Deep Intelligence & Verdict Engine
+
+## Goal Description
+Enhance the PhishVault-2 pipeline to perform automated analysis on ingested artifacts. This phase shifts from "seeing" the data to "interpreting" it, specifically for Emails and Files.
+
+## Proposed Changes
+
+### Worker: Analysis Module
+Create a new directory `services/worker/analysis` to house logic for different artifact types.
+
+#### [NEW] `services/worker/analysis/email.go`
+- Implement `AnalyzeEmail(sal domain.SAL) (domain.Signal, error)`
+- Logic:
+    - Evaluate `auth_spf_verdict` and `auth_dkim_independent` from metadata.
+    - Check for "Display Name Spoofing" (mismatch between `From` header display name and actual address).
+    - Check for "Urgency/Threat" keywords in the subject/body (basic NLP placeholder).
+    - Return a `domain.Signal` with a `RiskScore`.
+
+#### [NEW] `services/worker/analysis/file.go`
+- Implement `AnalyzeFile(sal domain.SAL) (domain.Signal, error)`
+- Logic:
+    - Retrieve file metadata (SHA256).
+    - Implement a placeholder for a VirusTotal lookup (or mock it for now).
+    - Check for "Double Extensions" (e.g., `invoice.pdf.exe`).
+    - Return a `domain.Signal`.
+
+### Worker: Orchestration & Verdict
+#### [MODIFY] [main.go](file:///c:/Users/Kandukoori%20Tejaswini/Desktop/PhishVault2/PhishVault/services/worker/main.go)
+- Integrate the newly created analysis functions into the processing loop.
+- Implement a basic "Verdict Aggregator" that combines signals (URL scan, Email analysis, File analysis) into a final `Verdict` (SAFE/MALICIOUS/SUSPICIOUS).
+- Update the DB `scans` table with the computed `Verdict` and total `RiskScore`.
+
+---
+
+## Verification Plan
+
+### Automated Tests
+- `email_analysis_test.go`: Test with various header combinations (Fail SPF + Urgency -> High Risk).
+- `file_analysis_test.go`: Test with double extensions and mock VT matches.
+
+### Manual Verification
+1.  **Email Forensics**:
+    - Submit an email with `spf=fail` and subject "URGENT: BANK ACCOUNT SUSPENDED".
+    - Verify Worker logs "Email Risk Score: 0.85" and Verdict becomes "MALICIOUS".
+2.  **File Security**:
+    - Submit an attachment named `payment_receipt.zip.exe`.
+    - Verify Worker flags the double extension and increases risk score.

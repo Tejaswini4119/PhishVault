@@ -44,6 +44,9 @@ func (f *ArtifactFactory) Ingest(ctx context.Context, t ArtifactType, input []by
 		return nil, fmt.Errorf("processing failed: %w", err)
 	}
 
+	// Capture RawData for persistence
+	artifact.RawData = input
+
 	// Calculate ID if not already set by processor (for dedup based on refined content)
 	if artifact.ID == "" {
 		hash := sha256.Sum256(input)

@@ -19,6 +19,7 @@ type IngestedArtifact struct {
 	ID              string                 `json:"id"`                  // Unique ID (SHA256 of content)
 	Type            ArtifactType           `json:"type"`                // Type of artifact
 	RawPath         string                 `json:"raw_path,omitempty"`  // Path to raw blob in storage
+	RawData         []byte                 `json:"-"`                   // Temporary byte storage for persistence
 	SourceID        string                 `json:"source_id"`           // ID of the scan/request that triggered this
 	Metadata        map[string]interface{} `json:"metadata"`            // Extracted metadata
 	Content         string                 `json:"content,omitempty"`   // Text content or canonical URL

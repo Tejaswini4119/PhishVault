@@ -13,6 +13,7 @@ type SAL struct {
 
 	// Input
 	URL             string `json:"url"`
+	ArtifactType    string `json:"artifact_type"`    // URL, EMAIL, FILE
 	IngestionSource string `json:"ingestion_source"` // e.g. "API", "Feed", "Email"
 
 	// Temporal & Network State
@@ -69,9 +70,10 @@ type ResponseDetails struct {
 
 // Artifacts holds references to stored files
 type Artifacts struct {
-	Screenshot     string `json:"screenshot,omitempty"`      // Base64 encoded screenshot
-	ScreenshotPath string `json:"screenshot_path,omitempty"` // Path or URL to screenshot
-	DOMPath        string `json:"dom_path,omitempty"`        // Path or URL to stored DOM
-	RawContent     string `json:"raw_content,omitempty"`     // In-memory content for immediate analysis
-	VisualHash     string `json:"visual_hash,omitempty"`     // pHash/dHash
+	Screenshot     string `json:"screenshot,omitempty"`       // Base64 encoded screenshot
+	ScreenshotPath string `json:"screenshot_path,omitempty"`  // Path or URL to screenshot
+	DOMPath        string `json:"dom_path,omitempty"`         // Path or URL to stored DOM
+	RawContent     string `json:"raw_content,omitempty"`      // In-memory content for immediate analysis
+	RawContentPath string `json:"raw_content_path,omitempty"` // Path to raw blob in MinIO (e.g. .eml, .pdf)
+	VisualHash     string `json:"visual_hash,omitempty"`      // pHash/dHash
 }

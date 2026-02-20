@@ -18,6 +18,7 @@ import (
 	"github.com/PhishVault/PhishVault-2/core/domain"
 	"github.com/PhishVault/PhishVault-2/services/ingestion/engine"
 	"github.com/PhishVault/PhishVault-2/services/intel"
+	"github.com/PhishVault/PhishVault-2/services/storage"
 	_ "github.com/jackc/pgx/v5/stdlib" // Postgres Driver
 )
 
@@ -26,6 +27,7 @@ var (
 	db          *sql.DB
 	neo4jClient *intel.Neo4jClient
 	factory     *engine.ArtifactFactory
+	storageMgr  *storage.StorageManager
 )
 
 type SubmitRequest struct {
@@ -254,6 +256,9 @@ func processAndPublish(w http.ResponseWriter, artifact *engine.IngestedArtifact,
 		task.Metadata["parent_scan_id"] = parentScanID
 	}
 
+	// PROBABLE FIX: Set ArtifactType for Worker Routing
+	task.ArtifactType = string(artifact.Type)
+
 	// Type-Specific Mapping
 	switch artifact.Type {
 	case engine.ArtifactTypeURL:
@@ -280,6 +285,32 @@ func processAndPublish(w http.ResponseWriter, artifact *engine.IngestedArtifact,
 	}
 
 	// 1. Persist
+	if artifact.RawData != nil && storageMgr != nil {
+		fileName := "original.blob"
+		contentType := "application/octet-stream"
+
+		switch artifact.Type {
+		case engine.ArtifactTypeEmail:
+			fileName = "email.eml"
+			contentType = "message/rfc822"
+		case engine.ArtifactTypeFile:
+			if name, ok := artifact.Metadata["filename"]; ok {
+				fileName = name.(string)
+			}
+			if ct, ok := artifact.Metadata["content_type"]; ok {
+				contentType = ct.(string)
+			}
+		}
+
+		path, err := storageMgr.SaveRaw(context.Background(), task.ScanID, fileName, artifact.RawData, contentType)
+		if err == nil {
+			task.Artifacts.RawContentPath = path
+			log.Printf("Persisted raw artifact to %s", path)
+		} else {
+			log.Printf("Failed to persist raw artifact: %v", err)
+		}
+	}
+
 	go saveScanToDB(task)
 
 	// 2. Publish
@@ -434,6 +465,12 @@ func main() {
 		log.Printf("Failed to connect to RabbitMQ: %v", err)
 	} else {
 		defer producer.Close()
+	}
+
+	// 5. Storage (MinIO)
+	storageMgr, err = storage.NewStorageManager("localhost:9000", "minioadmin", "minioadmin", "phishvault-artifacts")
+	if err != nil {
+		log.Printf("Failed to connect to Storage: %v", err)
 	}
 
 	// 4. HTTP Server Setup with Graceful Shutdown

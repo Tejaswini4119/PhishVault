@@ -117,16 +117,20 @@ func main() {
 			}
 
 			// 3.5 Run Scanner (Headless Browser)
-			if scanEngine != nil {
+			if task.ArtifactType == "URL" && scanEngine != nil {
 				log.Printf("Scanning URL: %s", task.URL)
 				artifacts, err := scanEngine.Scan(context.Background(), task.URL)
 				if err != nil {
 					log.Printf("Scanner failed: %v", err)
-					// Continue with empty artifacts?
 				} else {
 					task.Artifacts = artifacts
 					log.Printf("Scan successful. Content Size: %d", len(artifacts.RawContent))
 				}
+			} else if task.ArtifactType == "EMAIL" || task.ArtifactType == "FILE" {
+				log.Printf("Processing %s artifact: %s (Skipping Playwright)", task.ArtifactType, task.ArtifactID)
+				// Phase 2: Insert logic for deep header/file analysis here
+				task.Verdict = "SCANNED"
+				task.RiskScore = 0 // Placeholder
 			}
 
 			// 4. Process Task (Real ETE Logic)

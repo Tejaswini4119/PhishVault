@@ -21,10 +21,11 @@ func TestEvaluateVerdict(t *testing.T) {
 				HasLoginForm:     true,
 				DomainAgeDays:    5,
 			},
-			// Score: (0.9*0.4) + (0.9*0.2) + (1.0*0.3) + 0.2
-			// = 0.36 + 0.18 + 0.3 + 0.2 = 1.04 -> 1.0 (capped in logic? No cap in rego, but visual+urgency+intent max is usually 1.0. Wait.
-			// 0.4 + 0.2 + 0.3 + 0.2 = 1.1. So it can exceed 1.0.
-			wantRisk:    0.7, // Expecting at least > 0.7
+			// Dynamic Multiplier Calculation:
+			// Base: (0.9*0.3) + (0.9*0.2) + (0.8*0.5) = 0.85
+			// Boosters: Domain(1.6) * Brand(1.5) * Form(1.2) = 2.88
+			// Total: 0.85 * 2.88 = 2.44 -> Capped at 1.0
+			wantRisk:    1.0,
 			wantVerdict: "MALICIOUS",
 		},
 		{
@@ -36,9 +37,9 @@ func TestEvaluateVerdict(t *testing.T) {
 				HasLoginForm:     false,
 				DomainAgeDays:    100,
 			},
-			// Score: (0*0.4) + (0.1*0.2) + (0*0.3) + 0
-			// = 0.02
-			wantRisk:    0.01, // Check for non-zero
+			// Base: (0.1*0.2) = 0.02
+			// Boosters: 1.0
+			wantRisk:    0.02,
 			wantVerdict: "SAFE",
 		},
 	}

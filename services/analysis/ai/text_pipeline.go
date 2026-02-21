@@ -47,15 +47,19 @@ func AnalyzeContent(domHTML string, visibleText string, targetDomain string) Con
 
 	// --- 3. Intent Classification ---
 	// Hybrid Rules + Bayesian
-	if risk.FormRisk.HasPassword {
+	// PROBABLE FIX: Don't flag as CredentialHarvesting just because there's a password field.
+	// Many safe sites have login forms. Requires high Bayes score or other signals.
+	if risk.FormRisk.HasPassword && (brandMismatch || risk.FormRisk.ForeignAction || bayesScore > 0.85) {
 		risk.Intent = "CredentialHarvesting"
-	} else if bayesScore > 0.8 {
+	} else if risk.FormRisk.HasPassword {
+		risk.Intent = "BenignLogin" // Dedicated intent for benign login forms
+	} else if bayesScore > 0.9 {
 		risk.Intent = "PhishingScam" // High prob generic phishing
 	} else {
 		risk.Intent = "Benign"
 	}
 
-	if strings.Contains(lowerText, "download") && strings.Contains(lowerText, ".exe") {
+	if strings.Contains(lowerText, "download") && strings.Contains(lowerText, ".exe") && (risk.FormRisk.HasUpload || bayesScore > 0.7) {
 		risk.Intent = "MalwareDistribuition"
 	}
 

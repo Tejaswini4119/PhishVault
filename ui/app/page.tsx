@@ -113,6 +113,22 @@ export default function Home() {
         />
       </div>
 
+      {/* Quick Analysis Tools */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <ToolCard
+          title="Email Verifier"
+          description="Analyze email headers and bodies for forensic threats."
+          icon={<div className="bg-blue-500/20 p-3 rounded-lg text-blue-400"><Disc size={28} /></div>}
+          href="/email"
+        />
+        <ToolCard
+          title="File Analyzer"
+          description="Static analysis for malicious attachments and embedded URLs."
+          icon={<div className="bg-purple-500/20 p-3 rounded-lg text-purple-400"><Activity size={28} /></div>}
+          href="/file"
+        />
+      </div>
+
       {/* Recent Activity Table */}
       <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
         <div className="p-6 border-b border-slate-800 flex justify-between items-center">
@@ -152,4 +168,21 @@ export default function Home() {
       </div>
     </div>
   );
-}
+
+  function ToolCard({ title, description, icon, href }: { title: string; description: string; icon: React.ReactNode; href: string }) {
+    const router = useRouter();
+    return (
+      <div
+        onClick={() => router.push(href)}
+        className="bg-slate-900 border border-slate-800 p-6 rounded-xl hover:border-blue-500/50 cursor-pointer transition-all group"
+      >
+        <div className="flex items-start gap-4">
+          {icon}
+          <div>
+            <h3 className="font-bold text-white group-hover:text-blue-400 transition-colors">{title}</h3>
+            <p className="text-sm text-slate-400 mt-1">{description}</p>
+          </div>
+        </div>
+      </div>
+    );
+  }

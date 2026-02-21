@@ -27,7 +27,6 @@ type VerdictResult struct {
 // Embed the policy file
 //
 //go:embed phishing.rego
-
 var policyData string
 
 // EvaluateVerdict runs the OPA policy against the input.

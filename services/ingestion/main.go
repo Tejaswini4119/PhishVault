@@ -116,6 +116,44 @@ func submitEmailHandler(w http.ResponseWriter, r *http.Request) {
 	processAndPublish(w, artifact, "")
 }
 
+func submitFileHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	// 10MB limit
+	r.ParseMultipartForm(10 << 20)
+	file, header, err := r.FormFile("file")
+	if err != nil {
+		http.Error(w, "Failed to get file from form", http.StatusBadRequest)
+		return
+	}
+	defer file.Close()
+
+	fileBytes, err := io.ReadAll(file)
+	if err != nil {
+		http.Error(w, "Failed to read file", http.StatusInternalServerError)
+		return
+	}
+
+	// USE ENGINE: Ingest File
+	ctx := r.Context()
+	childMeta := map[string]interface{}{
+		"filename":     header.Filename,
+		"content_type": header.Header.Get("Content-Type"),
+	}
+	artifact, err := factory.Ingest(ctx, engine.ArtifactTypeFile, fileBytes, "API-FILE-USER", childMeta)
+	if err != nil {
+		log.Printf("File Ingestion failed: %v", err)
+		http.Error(w, "File Processing Failed", http.StatusInternalServerError)
+		return
+	}
+
+	// Process and Publish
+	processAndPublish(w, artifact, "")
+}
+
 // saveScanToDB inserts the initial record into Postgres
 func saveScanToDB(task domain.SAL) {
 	if db == nil {
@@ -484,6 +522,7 @@ func main() {
 	// Protected Endpoints
 	mux.HandleFunc("/submit", authMiddleware(submitHandler))
 	mux.HandleFunc("/submit-email", authMiddleware(submitEmailHandler))
+	mux.HandleFunc("/submit-file", authMiddleware(submitFileHandler))
 	mux.HandleFunc("/scans", authMiddleware(listScansHandler))         // READ API
 	mux.HandleFunc("/stats", authMiddleware(statsHandler))             // STATS API
 	mux.HandleFunc("/campaigns", authMiddleware(listCampaignsHandler)) // CAMPAIGNS API

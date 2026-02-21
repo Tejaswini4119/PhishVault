@@ -168,21 +168,22 @@ export default function Home() {
       </div>
     </div>
   );
+}
 
-  function ToolCard({ title, description, icon, href }: { title: string; description: string; icon: React.ReactNode; href: string }) {
-    const router = useRouter();
-    return (
-      <div
-        onClick={() => router.push(href)}
-        className="bg-slate-900 border border-slate-800 p-6 rounded-xl hover:border-blue-500/50 cursor-pointer transition-all group"
-      >
-        <div className="flex items-start gap-4">
-          {icon}
-          <div>
-            <h3 className="font-bold text-white group-hover:text-blue-400 transition-colors">{title}</h3>
-            <p className="text-sm text-slate-400 mt-1">{description}</p>
-          </div>
+function ToolCard({ title, description, icon, href }: { title: string; description: string; icon: React.ReactNode; href: string }) {
+  const router = useRouter();
+  return (
+    <div
+      onClick={() => router.push(href)}
+      className="bg-slate-900 border border-slate-800 p-6 rounded-xl hover:border-blue-500/50 cursor-pointer transition-all group"
+    >
+      <div className="flex items-start gap-4">
+        {icon}
+        <div>
+          <h3 className="font-bold text-white group-hover:text-blue-400 transition-colors">{title}</h3>
+          <p className="text-sm text-slate-400 mt-1">{description}</p>
         </div>
       </div>
-    );
-  }
+    </div>
+  );
+}

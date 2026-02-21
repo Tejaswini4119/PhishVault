@@ -3,6 +3,7 @@ package main
 import (
 	"database/sql"
 	"encoding/json"
+	"log"
 	"net/http"
 	"strings"
 	"time"
@@ -132,8 +133,10 @@ func loginHandler(w http.ResponseWriter, r *http.Request) {
 // AuthMiddleware validates JWT token
 func authMiddleware(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		log.Printf("AuthMiddleware: Request %s %s", r.Method, r.URL.Path)
 		// handle CORS preflight for protected routes
 		if r.Method == "OPTIONS" {
+			log.Printf("AuthMiddleware: Handling OPTIONS preflight")
 			w.Header().Set("Access-Control-Allow-Origin", "*")
 			w.Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, DELETE")
 			w.Header().Set("Access-Control-Allow-Headers", "Accept, Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization")

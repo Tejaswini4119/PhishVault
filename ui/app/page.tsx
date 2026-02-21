@@ -43,10 +43,11 @@ export default function Home() {
     // Poll for updates every 5 seconds
     const fetchData = async () => {
       try {
+        const apiBase = 'http://127.0.0.1:8080';
         const headers = { "Authorization": `Bearer ${token}` };
         const [scansRes, statsRes] = await Promise.all([
-          fetch('/api/scans', { headers }),
-          fetch('/api/stats', { headers })
+          fetch(`${apiBase}/scans`, { headers }),
+          fetch(`${apiBase}/stats`, { headers })
         ]);
 
         if (scansRes.ok) {

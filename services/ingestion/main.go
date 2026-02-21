@@ -42,6 +42,10 @@ type SubmitResponse struct {
 // CORS Middleware
 func enableCors(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		log.Printf("Incoming Request: %s %s", r.Method, r.URL.Path)
+		for k, v := range r.Header {
+			log.Printf("  Header %s: %v", k, v)
+		}
 		w.Header().Set("Access-Control-Allow-Origin", "*")
 		w.Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, DELETE")
 		w.Header().Set("Access-Control-Allow-Headers", "Accept, Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization")
@@ -94,27 +98,57 @@ func submitEmailHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// 10MB limit
-	r.ParseMultipartForm(10 << 20)
-	file, _, err := r.FormFile("file")
-	if err != nil {
-		http.Error(w, "Failed to get file from form", http.StatusBadRequest)
-		return
-	}
-	defer file.Close()
+	var emailBytes []byte
+	var err error
 
-	emailBytes, err := io.ReadAll(file)
-	if err != nil {
-		http.Error(w, "Failed to read file", http.StatusInternalServerError)
+	// Try to handle as multipart form first
+	contentType := r.Header.Get("Content-Type")
+	if strings.Contains(contentType, "multipart/form-data") {
+		// 10MB limit
+		if err := r.ParseMultipartForm(10 << 20); err != nil {
+			log.Printf("Multipart Parse Error: %v", err)
+			http.Error(w, "Failed to parse form", http.StatusBadRequest)
+			return
+		}
+		file, _, err := r.FormFile("file")
+		if err != nil {
+			http.Error(w, "Missing 'file' field in form", http.StatusBadRequest)
+			return
+		}
+		defer file.Close()
+		emailBytes, err = io.ReadAll(file)
+		if err != nil {
+			http.Error(w, "Failed to read file part", http.StatusInternalServerError)
+			return
+		}
+	} else {
+		// Fallback to raw body (legacy or direct text submission)
+		r.Body = http.MaxBytesReader(w, r.Body, 10<<20)
+		emailBytes, err = io.ReadAll(r.Body)
+		if err != nil {
+			http.Error(w, "Failed to read body", http.StatusInternalServerError)
+			return
+		}
+	}
+
+	if len(emailBytes) == 0 {
+		http.Error(w, "Empty email content", http.StatusBadRequest)
 		return
 	}
+
+	// DEBUG: Log first 100 bytes to check for corruption
+	previewLen := len(emailBytes)
+	if previewLen > 100 {
+		previewLen = 100
+	}
+	log.Printf("Email Ingestion [%s] - First %d bytes: %s", contentType, previewLen, string(emailBytes[:previewLen]))
 
 	// USE ENGINE: Ingest Email
 	ctx := r.Context()
 	artifact, err := factory.Ingest(ctx, engine.ArtifactTypeEmail, emailBytes, "API-EMAIL-USER", nil)
 	if err != nil {
 		log.Printf("Email Ingestion failed: %v", err)
-		http.Error(w, "Invalid Email Content", http.StatusBadRequest)
+		http.Error(w, "Processing failed: "+err.Error(), http.StatusBadRequest)
 		return
 	}
 

@@ -23,21 +23,31 @@ export default function EmailPage() {
         formData.append('file', file);
 
         try {
-            const res = await fetch('/api/submit-email', {
+            console.log('Sending email analysis request to direct backend...', { token: token?.substring(0, 10) + '...' });
+            const res = await fetch('http://127.0.0.1:8080/submit-email', {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${token}`
                 },
                 body: formData
             });
+            console.log('Response Status:', res.status);
             if (res.ok) {
                 setStatus('Analysis in progress. Check Live Scans for results.');
                 setFile(null);
             } else {
-                setStatus('Failed to submit email.');
+                let errorData = '';
+                try {
+                    errorData = await res.text();
+                } catch (e) {
+                    errorData = 'Could not read error body';
+                }
+                console.error('Email submission failed:', res.status, errorData);
+                setStatus(`Failed: Server returned ${res.status}. Error: ${errorData.substring(0, 50)}`);
             }
-        } catch (err) {
-            setStatus('Error: ' + err);
+        } catch (err: any) {
+            console.error('Email submission network/fetch error:', err);
+            setStatus(`Network Error: ${err.message || err}`);
         }
     };
 

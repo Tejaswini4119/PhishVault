@@ -1,29 +1,38 @@
 "use client";
 
 import { useState } from 'react';
-import { Mail, Send, ShieldCheck, AlertCircle } from 'lucide-react';
+import { Mail, Upload, ShieldCheck, AlertCircle } from 'lucide-react';
 import { useAuth } from '@/components/AuthProvider';
 
 export default function EmailPage() {
-    const [emailContent, setEmailContent] = useState('');
+    const [file, setFile] = useState<File | null>(null);
     const [status, setStatus] = useState<string | null>(null);
     const { token } = useAuth();
 
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files && e.target.files[0]) {
+            setFile(e.target.files[0]);
+        }
+    };
+
     const handleAnalyze = async () => {
-        if (!emailContent || !token) return;
-        setStatus('Analyzing...');
+        if (!file || !token) return;
+        setStatus('Uploading and Analyzing...');
+
+        const formData = new FormData();
+        formData.append('file', file);
+
         try {
             const res = await fetch('/api/submit-email', {
                 method: 'POST',
                 headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json'
+                    'Authorization': `Bearer ${token}`
                 },
-                body: JSON.stringify({ email_raw: emailContent })
+                body: formData
             });
             if (res.ok) {
                 setStatus('Analysis in progress. Check Live Scans for results.');
-                setEmailContent('');
+                setFile(null);
             } else {
                 setStatus('Failed to submit email.');
             }
@@ -38,29 +47,37 @@ export default function EmailPage() {
                 <h2 className="text-2xl font-bold text-white flex items-center gap-2">
                     <Mail className="text-blue-400" /> Email Verifier
                 </h2>
-                <p className="text-slate-400 text-sm">Paste raw email content (EML) for deep forensic analysis.</p>
+                <p className="text-slate-400 text-sm">Upload raw email content (.eml) for deep forensic analysis.</p>
             </div>
 
-            <div className="bg-slate-900 border border-slate-800 rounded-xl p-6 space-y-4">
-                <textarea
-                    value={emailContent}
-                    onChange={(e) => setEmailContent(e.target.value)}
-                    placeholder="Paste raw email headers and body here..."
-                    className="w-full h-96 bg-slate-950 border border-slate-800 rounded-lg p-4 text-slate-300 font-mono text-sm focus:border-blue-500 outline-none resize-none"
+            <div className="bg-slate-900 border border-slate-800 rounded-xl p-12 flex flex-col items-center justify-center space-y-6 border-dashed hover:bg-slate-800/50 transition-colors cursor-pointer relative">
+                <input
+                    type="file"
+                    onChange={handleFileChange}
+                    accept=".eml,message/rfc822"
+                    className="absolute inset-0 opacity-0 cursor-pointer"
                 />
-
-                <div className="flex justify-between items-center">
-                    <p className="text-xs text-slate-500">
+                <div className="bg-slate-800 p-4 rounded-full text-slate-400">
+                    <Upload size={40} />
+                </div>
+                <div className="text-center">
+                    <p className="text-lg font-semibold text-white">
+                        {file ? file.name : 'Click or drag .eml file to upload'}
+                    </p>
+                    <p className="text-slate-500 text-sm mt-1">
                         Supports: SPF/DKIM verification, Display Name spoofing detection, Link extraction.
                     </p>
-                    <button
-                        onClick={handleAnalyze}
-                        disabled={!emailContent}
-                        className="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 disabled:cursor-not-allowed text-white px-6 py-2 rounded-lg font-semibold transition-colors"
-                    >
-                        <Send size={18} /> Run Analysis
-                    </button>
                 </div>
+            </div>
+
+            <div className="flex justify-end">
+                <button
+                    onClick={handleAnalyze}
+                    disabled={!file}
+                    className="bg-blue-600 hover:bg-blue-500 disabled:opacity-50 disabled:cursor-not-allowed text-white px-8 py-3 rounded-lg font-semibold transition-colors flex items-center gap-2"
+                >
+                    <Mail size={20} /> Run Analysis
+                </button>
             </div>
 
             {status && (

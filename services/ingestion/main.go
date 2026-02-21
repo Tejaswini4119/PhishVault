@@ -94,12 +94,18 @@ func submitEmailHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	r.Body = http.MaxBytesReader(w, r.Body, 10<<20)
-
-	// Read full body for engine processing
-	emailBytes, err := io.ReadAll(r.Body)
+	// 10MB limit
+	r.ParseMultipartForm(10 << 20)
+	file, _, err := r.FormFile("file")
 	if err != nil {
-		http.Error(w, "Failed to read body", http.StatusInternalServerError)
+		http.Error(w, "Failed to get file from form", http.StatusBadRequest)
+		return
+	}
+	defer file.Close()
+
+	emailBytes, err := io.ReadAll(file)
+	if err != nil {
+		http.Error(w, "Failed to read file", http.StatusInternalServerError)
 		return
 	}
 

@@ -136,12 +136,13 @@ func submitEmailHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// DEBUG: Log first 100 bytes to check for corruption
-	previewLen := len(emailBytes)
+	// DEBUG: Log first 100 bytes and total size to check for corruption
+	totalSize := len(emailBytes)
+	previewLen := totalSize
 	if previewLen > 100 {
 		previewLen = 100
 	}
-	log.Printf("Email Ingestion [%s] - First %d bytes: %s", contentType, previewLen, string(emailBytes[:previewLen]))
+	log.Printf("Email Ingestion [%s] - Received %d bytes. First %d bytes: %s", contentType, totalSize, previewLen, string(emailBytes[:previewLen]))
 
 	// USE ENGINE: Ingest Email
 	ctx := r.Context()

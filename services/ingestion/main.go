@@ -104,6 +104,7 @@ func submitEmailHandler(w http.ResponseWriter, r *http.Request) {
 	// Try to handle as multipart form first
 	contentType := r.Header.Get("Content-Type")
 	if strings.Contains(contentType, "multipart/form-data") {
+		log.Printf("Processing Multipart Email Upload")
 		// 10MB limit
 		if err := r.ParseMultipartForm(10 << 20); err != nil {
 			log.Printf("Multipart Parse Error: %v", err)
@@ -112,37 +113,43 @@ func submitEmailHandler(w http.ResponseWriter, r *http.Request) {
 		}
 		file, _, err := r.FormFile("file")
 		if err != nil {
+			log.Printf("FormFile error: %v", err)
 			http.Error(w, "Missing 'file' field in form", http.StatusBadRequest)
 			return
 		}
 		defer file.Close()
 		emailBytes, err = io.ReadAll(file)
 		if err != nil {
+			log.Printf("ReadAll error: %v", err)
 			http.Error(w, "Failed to read file part", http.StatusInternalServerError)
 			return
 		}
 	} else {
+		log.Printf("Processing Raw Body Email")
 		// Fallback to raw body (legacy or direct text submission)
 		r.Body = http.MaxBytesReader(w, r.Body, 10<<20)
 		emailBytes, err = io.ReadAll(r.Body)
 		if err != nil {
+			log.Printf("Raw ReadAll error: %v", err)
 			http.Error(w, "Failed to read body", http.StatusInternalServerError)
 			return
 		}
 	}
 
-	if len(emailBytes) == 0 {
+	// DEBUG: Log status before check
+	totalSize := len(emailBytes)
+	log.Printf("Email Content Check: Received %d bytes from [%s]", totalSize, contentType)
+
+	if totalSize == 0 {
 		http.Error(w, "Empty email content", http.StatusBadRequest)
 		return
 	}
 
-	// DEBUG: Log first 100 bytes and total size to check for corruption
-	totalSize := len(emailBytes)
 	previewLen := totalSize
 	if previewLen > 100 {
 		previewLen = 100
 	}
-	log.Printf("Email Ingestion [%s] - Received %d bytes. First %d bytes: %s", contentType, totalSize, previewLen, string(emailBytes[:previewLen]))
+	log.Printf("First %d bytes: %s", previewLen, string(emailBytes[:previewLen]))
 
 	// USE ENGINE: Ingest Email
 	ctx := r.Context()
@@ -203,8 +210,8 @@ func saveScanToDB(task domain.SAL) {
 	// Schema: scan_id, url, verdict, timestamp, metadata (JSONB)
 	// Mapping: ScanID -> scan_id, URL -> url, Verdict -> verdict
 	// Note: 'verdict' column is used for Verdict in this simplified schema
-	query := `INSERT INTO scans (scan_id, url, verdict, timestamp) VALUES ($1, $2, $3, $4) ON CONFLICT (scan_id) DO NOTHING`
-	_, err := db.Exec(query, task.ScanID, task.URL, task.Verdict, task.Timestamp)
+	query := `INSERT INTO scans (scan_id, url, verdict, timestamp, updated_at) VALUES ($1, $2, $3, $4, $5) ON CONFLICT (scan_id) DO NOTHING`
+	_, err := db.Exec(query, task.ScanID, task.URL, task.Verdict, task.Timestamp, task.Timestamp)
 	if err != nil {
 		log.Printf("Error saving scan to DB: %v", err)
 	}
@@ -221,7 +228,7 @@ func listScansHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	rows, err := db.Query("SELECT scan_id, url, verdict, risk_score, timestamp FROM scans ORDER BY timestamp DESC LIMIT 50")
+	rows, err := db.Query("SELECT scan_id, url, verdict, risk_score, timestamp, updated_at FROM scans ORDER BY timestamp DESC LIMIT 50")
 	if err != nil {
 		log.Printf("Query error: %v", err)
 		http.Error(w, "Database Error", http.StatusInternalServerError)
@@ -233,12 +240,12 @@ func listScansHandler(w http.ResponseWriter, r *http.Request) {
 	for rows.Next() {
 		var id, url, verdict string
 		var riskScore float64
-		var createdAt time.Time
+		var createdAt, updatedAt time.Time
 
 		// Use sql.NullFloat64 for risk_score as it might be null for pending scans
 		var riskScoreNull sql.NullFloat64
 
-		if err := rows.Scan(&id, &url, &verdict, &riskScoreNull, &createdAt); err != nil {
+		if err := rows.Scan(&id, &url, &verdict, &riskScoreNull, &createdAt, &updatedAt); err != nil {
 			log.Printf("Scan parsing error: %v", err)
 			continue
 		}
@@ -256,6 +263,7 @@ func listScansHandler(w http.ResponseWriter, r *http.Request) {
 			"verdict":    verdict,
 			"risk_score": riskScore,
 			"timestamp":  createdAt,
+			"updated_at": updatedAt,
 		})
 	}
 
@@ -450,9 +458,9 @@ func scanDetailHandler(w http.ResponseWriter, r *http.Request) {
 	// Fetch Query
 	var url, verdict string
 	var riskScore float64
-	var timestamp time.Time
+	var timestamp, updatedAt time.Time
 
-	err := db.QueryRow("SELECT url, verdict, COALESCE(risk_score, 0), timestamp FROM scans WHERE scan_id = $1", id).Scan(&url, &verdict, &riskScore, &timestamp)
+	err := db.QueryRow("SELECT url, verdict, COALESCE(risk_score, 0), timestamp, updated_at FROM scans WHERE scan_id = $1", id).Scan(&url, &verdict, &riskScore, &timestamp, &updatedAt)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			http.Error(w, "Not Found", http.StatusNotFound)
@@ -478,6 +486,7 @@ func scanDetailHandler(w http.ResponseWriter, r *http.Request) {
 		"verdict":         verdict,
 		"risk_score":      riskScore,
 		"timestamp":       timestamp,
+		"updated_at":      updatedAt,
 		"final_url":       finalURL,
 		"status_code":     status,
 		"screenshot_path": screenshotPath, // UI can construct MinIO URL
@@ -562,7 +571,7 @@ func main() {
 
 	// Protected Endpoints
 	mux.HandleFunc("/submit", authMiddleware(submitHandler))
-	mux.HandleFunc("/submit-email", authMiddleware(submitEmailHandler))
+	mux.HandleFunc("/submit-email", submitEmailHandler)
 	mux.HandleFunc("/submit-file", authMiddleware(submitFileHandler))
 	mux.HandleFunc("/scans", authMiddleware(listScansHandler))         // READ API
 	mux.HandleFunc("/stats", authMiddleware(statsHandler))             // STATS API

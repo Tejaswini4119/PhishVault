@@ -10,6 +10,7 @@ interface Scan {
     target_url: string;
     status: string;
     timestamp: string;
+    updated_at: string;
     verdict: string;
     risk_score: number;
 }
@@ -81,7 +82,7 @@ export default function ScansPage() {
                             <tr>
                                 <th className="px-6 py-4">Scan ID</th>
                                 <th className="px-6 py-4">Target / Subject</th>
-                                <th className="px-6 py-4">Risk Score</th>
+                                <th className="px-6 py-4">Threat Score</th>
                                 <th className="px-6 py-4">Ingestion</th>
                                 <th className="px-6 py-4">Timestamp</th>
                                 <th className="px-6 py-4">Verdict</th>
@@ -126,7 +127,12 @@ export default function ScansPage() {
                                             </span>
                                         </td>
                                         <td className="px-6 py-4 text-xs">
-                                            {new Date(scan.timestamp).toLocaleString()}
+                                            <div>{new Date(scan.timestamp).toLocaleString()}</div>
+                                            {scan.updated_at && scan.updated_at !== scan.timestamp && (
+                                                <div className="text-[10px] text-blue-500 font-medium mt-0.5">
+                                                    Updated: {new Date(scan.updated_at).toLocaleTimeString()}
+                                                </div>
+                                            )}
                                         </td>
                                         <td className="px-6 py-4">
                                             <Badge verdict={scan.verdict} />

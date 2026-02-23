@@ -11,6 +11,7 @@ interface ScanReport {
   verdict: string;
   risk_score: number;
   timestamp: string;
+  updated_at?: string;
   final_url?: string;
   status_code?: number;
   screenshot_url?: string;
@@ -74,7 +75,7 @@ export default function ScanReportPage() {
           <div className="flex items-center gap-4 text-right">
             <div>
               <div className={`text-4xl font-extrabold ${statusColor} tracking-wider`}>{data.verdict}</div>
-              <div className="text-sm text-gray-400 mt-1">RISK SCORE: {data.risk_score.toFixed(2)}</div>
+              <div className="text-sm text-gray-400 mt-1 uppercase">Threat Score: {data.risk_score.toFixed(2)}</div>
             </div>
             {isMalicious ? <AlertTriangle size={48} className="text-red-500" /> : <CheckCircle size={48} className="text-green-500" />}
           </div>
@@ -109,10 +110,16 @@ export default function ScanReportPage() {
                     <div className="text-lg font-mono">{data.status_code || "N/A"}</div>
                   </div>
                   <div>
-                    <label className="text-xs uppercase tracking-wider text-gray-500 font-bold">Scanned At</label>
+                    <label className="text-xs uppercase tracking-wider text-gray-500 font-bold">Discovered</label>
                     <div className="text-lg font-mono">{new Date(data.timestamp).toLocaleString()}</div>
                   </div>
                 </div>
+                {data.updated_at && data.updated_at !== data.timestamp && (
+                  <div className="pt-2">
+                    <label className="text-xs uppercase tracking-wider text-gray-500 font-bold">Last Updated</label>
+                    <div className="text-sm font-mono text-blue-400">{new Date(data.updated_at).toLocaleString()}</div>
+                  </div>
+                )}
               </div>
             </div>
 

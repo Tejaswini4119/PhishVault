@@ -32,12 +32,17 @@ func main() {
 	}
 	defer db.Close()
 
-	// Self-Heal: Ensure risk_score is FLOAT
+	// Self-Heal: Ensure risk_score is FLOAT and updated_at exists
 	_, err = db.Exec("ALTER TABLE scans ALTER COLUMN risk_score TYPE FLOAT USING risk_score::double precision")
 	if err != nil {
 		log.Printf("Schema check warning (risk_score): %v", err)
+	}
+
+	_, err = db.Exec("ALTER TABLE scans ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP")
+	if err != nil {
+		log.Printf("Schema check error (updated_at): %v", err)
 	} else {
-		log.Println("Ensured scans.risk_score is FLOAT")
+		log.Println("Ensured scans.updated_at exists")
 	}
 
 	// 1.5 Initialize Storage (MinIO)
@@ -185,7 +190,7 @@ func main() {
 			// 5. Update Database with Result
 			// Note: Orchestrator sets Verdict to MALICIOUS/SAFE
 			log.Printf("Updating DB for %s: Verdict=%s, RiskScore=%f", result.ScanID, result.Verdict, result.RiskScore)
-			_, err = db.Exec("UPDATE scans SET verdict = $1, risk_score = $2 WHERE scan_id = $3",
+			_, err = db.Exec("UPDATE scans SET verdict = $1, risk_score = $2, updated_at = NOW() WHERE scan_id = $3",
 				result.Verdict, result.RiskScore, result.ScanID)
 
 			if err != nil {

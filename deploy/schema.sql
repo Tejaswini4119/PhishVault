@@ -6,7 +6,8 @@ CREATE TABLE IF NOT EXISTS scans (
     timestamp TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     ingestion_source VARCHAR(50),
     verdict VARCHAR(20),
-    risk_score FLOAT
+    risk_score FLOAT,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE IF NOT EXISTS scan_details (

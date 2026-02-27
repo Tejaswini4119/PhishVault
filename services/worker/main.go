@@ -45,6 +45,13 @@ func main() {
 		log.Println("Ensured scans.updated_at exists")
 	}
 
+	_, err = db.Exec("ALTER TABLE scans ADD COLUMN IF NOT EXISTS signals JSONB")
+	if err != nil {
+		log.Printf("Schema check error (signals): %v", err)
+	} else {
+		log.Println("Ensured scans.signals exists")
+	}
+
 	// 1.5 Initialize Storage (MinIO)
 	storageManager, err := storage.NewStorageManager(
 		"localhost:9000", "minioadmin", "minioadmin", "phishvault-artifacts",
@@ -97,7 +104,7 @@ func main() {
 	msgs, err := ch.Consume(
 		q.Name, // queue
 		"",     // consumer
-		true,   // auto-ack
+		false,  // auto-ack (Set to false for reliability)
 		false,  // exclusive
 		false,  // no-local
 		false,  // no-wait
@@ -190,13 +197,18 @@ func main() {
 			// 5. Update Database with Result
 			// Note: Orchestrator sets Verdict to MALICIOUS/SAFE
 			log.Printf("Updating DB for %s: Verdict=%s, RiskScore=%f", result.ScanID, result.Verdict, result.RiskScore)
-			_, err = db.Exec("UPDATE scans SET verdict = $1, risk_score = $2, updated_at = NOW() WHERE scan_id = $3",
-				result.Verdict, result.RiskScore, result.ScanID)
+			
+			signalsJSON, _ := json.Marshal(result.Signals)
+			
+			_, err = db.Exec("UPDATE scans SET verdict = $1, risk_score = $2, signals = $3, updated_at = NOW() WHERE scan_id = $4",
+				result.Verdict, result.RiskScore, signalsJSON, result.ScanID)
 
 			if err != nil {
 				log.Printf("Failed to update DB: %v", err)
 			} else {
 				log.Printf("Scan %s completed. Verdict: %s", result.ScanID, result.Verdict)
+				// 6. Manual Ack only after DB persistence
+				d.Ack(false)
 			}
 		}
 	}()

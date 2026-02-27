@@ -459,8 +459,9 @@ func scanDetailHandler(w http.ResponseWriter, r *http.Request) {
 	var url, verdict string
 	var riskScore float64
 	var timestamp, updatedAt time.Time
+	var signalsJSON sql.NullString
 
-	err := db.QueryRow("SELECT url, verdict, COALESCE(risk_score, 0), timestamp, updated_at FROM scans WHERE scan_id = $1", id).Scan(&url, &verdict, &riskScore, &timestamp, &updatedAt)
+	err := db.QueryRow("SELECT url, verdict, COALESCE(risk_score, 0), timestamp, updated_at, signals FROM scans WHERE scan_id = $1", id).Scan(&url, &verdict, &riskScore, &timestamp, &updatedAt, &signalsJSON)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			http.Error(w, "Not Found", http.StatusNotFound)
@@ -480,6 +481,11 @@ func scanDetailHandler(w http.ResponseWriter, r *http.Request) {
 	var screenshotPath string
 	_ = db.QueryRow("SELECT path FROM artifacts WHERE scan_id = $1 AND artifact_type = 'screenshot'", id).Scan(&screenshotPath)
 
+	var signals []interface{}
+	if signalsJSON.Valid && signalsJSON.String != "" {
+		json.Unmarshal([]byte(signalsJSON.String), &signals)
+	}
+
 	resp := map[string]interface{}{
 		"scan_id":         id,
 		"url":             url,
@@ -489,6 +495,7 @@ func scanDetailHandler(w http.ResponseWriter, r *http.Request) {
 		"updated_at":      updatedAt,
 		"final_url":       finalURL,
 		"status_code":     status,
+		"signals":         signals,
 		"screenshot_path": screenshotPath, // UI can construct MinIO URL
 		"screenshot_url":  "http://localhost:9000/phishvault-artifacts/" + screenshotPath,
 	}

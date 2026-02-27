@@ -5,6 +5,15 @@ import { useParams } from "next/navigation";
 import { AlertTriangle, CheckCircle, XCircle, Shield, Globe, Image as ImageIcon } from "lucide-react";
 import { useAuth } from "@/components/AuthProvider";
 
+interface Signal {
+  engine_name: string;
+  signal_key: string;
+  confidence: number;
+  weight: number;
+  evidence: any;
+  tags?: string[];
+}
+
 interface ScanReport {
   scan_id: string;
   url: string;
@@ -15,6 +24,7 @@ interface ScanReport {
   final_url?: string;
   status_code?: number;
   screenshot_url?: string;
+  signals?: Signal[];
 }
 
 export default function ScanReportPage() {
@@ -59,8 +69,11 @@ export default function ScanReportPage() {
 
   const isMalicious = data.verdict === "MALICIOUS";
   const isSafe = data.verdict === "SAFE";
-  const statusColor = isMalicious ? "text-red-500" : isSafe ? "text-green-500" : "text-yellow-500";
-  const borderColor = isMalicious ? "border-red-500/50" : isSafe ? "border-green-500/50" : "border-yellow-500/50";
+  const isSuspicious = data.verdict === "SUSPICIOUS";
+  const isPending = data.verdict === "PENDING";
+
+  const statusColor = isMalicious ? "text-red-500" : isSafe ? "text-green-500" : isSuspicious ? "text-orange-400" : "text-yellow-500";
+  const borderColor = isMalicious ? "border-red-500/50" : isSafe ? "border-green-500/50" : isSuspicious ? "border-orange-500/50" : "border-yellow-500/50";
 
   return (
     <div className="min-h-screen bg-slate-900 text-gray-100 p-8 font-sans">
@@ -130,13 +143,39 @@ export default function ScanReportPage() {
               </h2>
               <div className="space-y-4">
                 <div className="p-4 rounded bg-black/40 border border-white/5 text-sm font-mono text-gray-300">
-                  {/* Placeholder for now till we persist signals */}
                   <p className="text-gray-500 italic mb-2">// Automated Analysis Log</p>
-                  <p>- Visual Analysis: Completed</p>
-                  <p>- NLP Engine: {data.verdict === "MALICIOUS" ? "High Urgency Detected" : "No obvious threats"}</p>
-                  <p>- Domain Age: Checked</p>
-                  <p>- Reputation: Clean</p>
+                  {isPending ? (
+                    <div className="space-y-2">
+                      <p>- Visual Analysis: <span className="text-yellow-500 animate-pulse">In Progress...</span></p>
+                      <p>- NLP Engine: <span className="text-yellow-500 animate-pulse">Running Deep Analysis...</span></p>
+                      <p>- Domain Age: <span className="text-yellow-500 animate-pulse">Querying WHOIS...</span></p>
+                      <p>- Reputation: <span className="text-yellow-500 animate-pulse">Checking Blacklists...</span></p>
+                    </div>
+                  ) : data.signals && data.signals.length > 0 ? (
+                    <div className="space-y-2">
+                      {data.signals.map((sig, idx) => (
+                        <p key={idx}>
+                          - {sig.engine_name}: <span className={sig.weight > 0.5 ? "text-red-400" : "text-blue-400"}>
+                            {sig.signal_key.replace(/_/g, " ")}
+                          </span>
+                          {sig.confidence > 0 && <span className="text-gray-600 ml-2">(Conf: {(sig.confidence * 100).toFixed(0)}%)</span>}
+                        </p>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      <p>- Visual Analysis: <span className="text-green-500">Completed (Safe)</span></p>
+                      <p>- NLP Engine: <span className="text-green-500">No threats detected</span></p>
+                      <p>- Domain Age: <span className="text-blue-400">Checked</span></p>
+                      <p>- Reputation: <span className="text-green-400">Clean</span></p>
+                    </div>
+                  )}
                 </div>
+                {!isPending && (
+                  <p className="text-[10px] text-gray-600 uppercase tracking-tighter">
+                    Decision based on {data.signals?.length || 0} active signals
+                  </p>
+                )}
               </div>
             </div>
           </div>

@@ -30,5 +30,5 @@ CREATE TABLE IF NOT EXISTS artifacts (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE INDEX idx_scans_url ON scans(url);
-CREATE INDEX idx_scans_timestamp ON scans(timestamp);
+CREATE INDEX IF NOT EXISTS idx_scans_url ON scans(url);
+CREATE INDEX IF NOT EXISTS idx_scans_timestamp ON scans(timestamp);

@@ -1,4 +1,4 @@
-module github.com/PhishVault/PhishVault-2
+module github.com/Tejaswini4119/PhishVault
 
 go 1.24.6
 
